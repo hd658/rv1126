@@ -530,6 +530,53 @@ static __always_inline void *kmalloc_large(size_t size, gfp_t flags)
  * There are other flags available as well, but these are not intended
  * for general use, and so are not documented here. For a full list of
  * potential flags, always refer to linux/gfp.h.
+ * 
+ * kmalloc - 分配内存
+ * @size: 需要分配的内存字节数。
+ * @flags: 分配的内存类型。
+ *
+ * kmalloc 是内核中为小于一页大小的对象分配内存的常规方法。
+ *
+ * @flags 参数可以是下列之一：
+ *
+ * %GFP_USER - 代表用户空间分配内存。可能会休眠。
+ *
+ * %GFP_KERNEL - 分配普通内核内存。可能会休眠。
+ *
+ * %GFP_ATOMIC - 分配过程中不会休眠。可能会动用紧急内存池。
+ *   例如，在中断处理程序中使用此标志。
+ *
+ * %GFP_HIGHUSER - 从高端内存区域分配页面。
+ *
+ * %GFP_NOIO - 在尝试获取内存时，完全不进行任何 I/O 操作。
+ *
+ * %GFP_NOFS - 在尝试获取内存时，完全不进行任何文件系统调用。
+ *
+ * %GFP_NOWAIT - 分配过程中不会休眠。
+ *
+ * %__GFP_THISNODE - 仅分配本地节点的内存。
+ *
+ * %GFP_DMA - 分配适用于 DMA 的内存。
+ *   只应当用于 kmalloc() 缓存。否则，请使用以 SLAB_DMA 创建的 slab。
+ *
+ * 此外，还可以通过按位或操作设置以下一个或多个
+ * 附加 @flags 组合出不同的标志：
+ *
+ * %__GFP_HIGH - 此分配具有高优先级，可能会动用紧急内存池。
+ *
+ * %__GFP_NOFAIL - 表示此分配绝不允许失败
+ *  （使用前请三思）。
+ *
+ * %__GFP_NORETRY - 如果内存不能立刻获取，
+ *   则立即放弃。
+ *
+ * %__GFP_NOWARN - 如果分配失败，不发出任何警告。
+ *
+ * %__GFP_RETRY_MAYFAIL - 极其努力地尝试让分配成功，但最终仍可能失败。
+ *
+ * 此外还有其它可用标志，但这些标志并不适用于一般用途，
+ * 因此不在此处记录。如需获取完整列表，
+ * 请始终参阅 linux/gfp.h。 * 
  */
 static __always_inline void *kmalloc(size_t size, gfp_t flags)
 {

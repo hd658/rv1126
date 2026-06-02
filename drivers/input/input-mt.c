@@ -24,7 +24,7 @@ static void copy_abs(struct input_dev *dev, unsigned int dst, unsigned int src)
 }
 
 /**
- * input_mt_init_slots() - initialize MT input slots
+ * input_mt_init_slots() - initialize MT input slots- 
  * @dev: input device supporting MT events and finger tracking
  * @num_slots: number of slots used by the device
  * @flags: mt tasks to handle in core

@@ -206,6 +206,31 @@ void device_pm_move_to_tail(struct device *dev)
  * The supplier device is required to be registered when this function is called
  * and NULL will be returned if that is not the case.  The consumer device need
  * not be registered, however.
+ * 
+* device_link_add - 在两个设备之间创建链接。
+ * @consumer: 链接的消费者端（consumer）。
+ * @supplier: 链接的供应者端（supplier）。
+ * @flags: 链接标志。
+ *
+ * 调用者负责在创建链接时与运行时 PM（Runtime PM）进行适当的同步。
+ * 首先，设置 DL_FLAG_PM_RUNTIME 标志将使运行时 PM 框架将此链接考虑在内。
+ * 其次，如果同时设置了 DL_FLAG_RPM_ACTIVE 标志，供应者设备将在创建链接时
+ * 被强制置于活跃状态（active metastate）并增加引用计数。
+ * 如果未设置 DL_FLAG_PM_RUNTIME，则 DL_FLAG_RPM_ACTIVE 将被忽略。
+ *
+ * 如果设置了 DL_FLAG_AUTOREMOVE_CONSUMER 标志，当消费者设备驱动与之解绑时，
+ * 链接将自动被移除。类似地，如果在 @flags 中设置了 DL_FLAG_AUTOREMOVE_SUPPLIER，
+ * 则当供应者设备驱动与之解绑时，链接将自动被移除。
+ *
+ * 在 @flags 中同时设置 DL_FLAG_STATELESS 和 DL_FLAG_AUTOREMOVE_CONSUMER
+ * 或 DL_FLAG_AUTOREMOVE_SUPPLIER 是无效的组合，将导致函数立即返回 NULL。
+ *
+ * 创建链接的一个副作用是重新排列 dpm_list 和 devices_kset 列表，
+ * 将消费者设备以及所有依赖它的设备移动到这些列表的末尾
+ * （对于调用此函数时尚未注册的设备，不会发生此重排序）。
+ *
+ * 调用此函数时，供应者设备必须已经注册，否则返回 NULL。
+ * 然而，消费者设备可以尚未注册。 * 
  */
 struct device_link *device_link_add(struct device *consumer,
 				    struct device *supplier, u32 flags)
@@ -489,7 +514,15 @@ static void __device_link_del(struct kref *kref)
  * PM.  If the link was added multiple times, it needs to be deleted as often.
  * Care is required for hotplugged devices:  Their links are purged on removal
  * and calling device_link_del() is then no longer allowed.
- */
+ * 
+*  device_link_del - 删除两个设备之间的链接。
+ * @link: 要删除的设备链接。
+ *
+ * 调用者必须确保此函数与运行时 PM 之间的正确同步。
+ * 如果链接被多次添加，则需要删除同样多次。
+ * 对于热插拔设备需要小心：它们的链接在设备移除时会被清除，
+ * 之后再调用 device_link_del() 就不再被允许了。 
+ * */
 void device_link_del(struct device_link *link)
 {
 	device_links_write_lock();
@@ -507,6 +540,12 @@ EXPORT_SYMBOL_GPL(device_link_del);
  *
  * The caller must ensure proper synchronization of this function with runtime
  * PM.
+ * 
+* device_link_remove - 移除两个设备之间的链接。
+ * @consumer: 链接的消费者端。
+ * @supplier: 链接的供应者端。
+ *
+ * 调用者必须确保此函数与运行时 PM 之间的正确同步。 * 
  */
 void device_link_remove(void *consumer, struct device *supplier)
 {
@@ -1033,6 +1072,13 @@ static inline int device_is_not_partition(struct device *dev)
  * the device is not bound to a driver, it will return the name of the bus
  * it is attached to.  If it is not attached to a bus either, an empty
  * string will be returned.
+ * 
+*  dev_driver_string - 尽可能返回设备的驱动名称
+ * @dev: 要获取其名称的 struct device
+ *
+ * 如果设备已绑定到驱动，将返回该驱动的名称。
+ * 如果设备未绑定驱动，将返回它所连接的总线的名称。
+ * 如果它也没有连接到任何总线，则返回空字符串。 * 
  */
 const char *dev_driver_string(const struct device *dev)
 {
@@ -1163,6 +1209,15 @@ EXPORT_SYMBOL_GPL(device_show_bool);
  * This is called once the reference count for the object
  * reaches 0. We forward the call to the device's release
  * method, which should handle actually freeing the structure.
+ * 
+ * device_release - 释放设备结构体。
+ * @kobj: 设备的 kobject。
+ *
+ * 当对象的引用计数降为 0 时，此函数被调用。
+ * 我们将调用转发给设备的 release 方法，
+ * 该方法应负责实际释放该结构体。 *
+ * 
+ * 这个函数被设置为 device_ktype 的 .release 方法， 
  */
 static void device_release(struct kobject *kobj)
 {
@@ -1177,6 +1232,12 @@ static void device_release(struct kobject *kobj)
 	 * Drivers still can add resources into device after device
 	 * is deleted but alive, so release devres here to avoid
 	 * possible memory leak.
+	 * 
+	 * 有些平台设备在没有附加驱动的情况下运行，
+	 * 但可能已经获取了受管资源。确保所有这些资源都被释放。
+	 *
+	 * 驱动仍然可以在设备被删除但仍存活时向设备添加资源，
+	 * 因此在此处释放 devres 以避免潜在的内存泄漏。	 * 
 	 */
 	devres_release_all(dev);
 
@@ -1190,7 +1251,7 @@ static void device_release(struct kobject *kobj)
 		WARN(1, KERN_ERR "Device '%s' does not have a release() "
 			"function, it is broken and must be fixed.\n",
 			dev_name(dev));
-	kfree(p);
+	kfree(p);//kfree会检查传入参数是否为空指针
 }
 
 static const void *device_namespace(struct kobject *kobj)
@@ -1541,6 +1602,13 @@ EXPORT_SYMBOL_GPL(devm_device_add_groups);
  * @groups:	NULL terminated list of groups to be removed
  *
  * If groups is not NULL, remove the specified groups from the device.
+ * 
+* devm_device_remove_groups - 移除一组托管属性组
+ *
+ * @dev:   要从中移除属性组的设备
+ * @groups: 以 NULL 结尾的属性组列表，指定要移除哪些组
+ *
+ * 如果 groups 不为 NULL，则从设备中移除指定的属性组。 * 
  */
 void devm_device_remove_groups(struct device *dev,
 			       const struct attribute_group **groups)
@@ -1668,6 +1736,11 @@ void devices_kset_move_last(struct device *dev)
  * device_create_file - create sysfs attribute file for device.
  * @dev: device.
  * @attr: device attribute descriptor.
+ * 
+ *  * device_create_file - 为设备创建 sysfs 属性文件。
+ * @dev: 设备。
+ * @attr: 设备属性描述符。
+ * 
  */
 int device_create_file(struct device *dev,
 		       const struct device_attribute *attr)
@@ -1781,6 +1854,21 @@ static void klist_children_put(struct klist_node *n)
  *
  * NOTE: Use put_device() to give up your reference instead of freeing
  * @dev directly once you have called this function.
+ * 
+* device_initialize - 初始化设备结构体。
+ * @dev: 设备。
+ *
+ * 此函数通过初始化设备的各个字段，为其他层使用该设备做好准备。
+ * 它是 device_register() 的前半部分，如果被该函数调用的话，
+ * 不过它也可以被单独调用，以便使用 @dev 的字段。特别地，
+ * 在调用此函数之后，可以使用 get_device()/put_device()
+ * 对 @dev 进行引用计数。
+ *
+ * 调用者必须将 @dev 中的所有字段初始化为 0，除非明确设置为其他值。
+ * 最简单的方法是使用 kzalloc() 分配包含 @dev 的结构体。
+ *
+ * 注意：一旦调用了此函数，请使用 put_device() 放弃您的引用，
+ * 而不是直接释放 @dev。 * 
  */
 void device_initialize(struct device *dev)
 {
@@ -2177,6 +2265,24 @@ static int device_private_init(struct device *dev)
  * NOTE: _Never_ directly free @dev after calling this function, even
  * if it returned an error! Always use put_device() to give up your
  * reference instead.
+* device_add - 将设备添加到设备层次结构中。
+ * @dev: 设备。
+ *
+ * 这是 device_register() 的第 2 步，不过如果 device_initialize()
+ * 已经被单独调用过了，也可以单独调用此函数。
+ *
+ * 此函数通过 kobject_add() 将 @dev 添加到 kobject 层次结构中，
+ * 将其添加到设备的全局链表和兄弟链表，然后将其添加到驱动模型的
+ * 其他相关子系统中。
+ *
+ * 不要对任何设备结构体多次调用此函数或 device_register()。
+ * 驱动模型核心并非为处理先注销然后又重新活跃的设备而设计。
+ * （除了其他问题之外，很难保证对 @dev 前一次化身的所有引用
+ * 都已被释放。）请重新分配并注册一个新的 struct device 作为替代。
+ *
+ * 注意：_永远_不要在此函数返回后直接释放 @dev 的内存，即使
+ * 它返回了错误也是如此！始终改用 put_device() 来放弃您的引用。
+ *
  */
 int device_add(struct device *dev)
 {
@@ -2373,6 +2479,19 @@ EXPORT_SYMBOL_GPL(device_add);
  * NOTE: _Never_ directly free @dev after calling this function, even
  * if it returned an error! Always use put_device() to give up the
  * reference initialized in this function instead.
+ * 
+ * device_register - 将设备注册到系统中。
+ * @dev: 指向设备结构体的指针
+ *
+ * 这个过程分为清晰的两步 —— 初始化设备并将其添加到系统中。
+ * 这两个步骤可以分别调用，但合在一起是最简单、最常用的方式。
+ * 也就是说，只有当你有明确的需求，需要在设备添加到层级结构之前
+ * 就使用它并增加引用计数时，才应该分别调用这两个辅助函数。
+ *
+ * 更多信息请参阅 device_initialize() 和 device_add() 的内核文档。
+ *
+ * 注意：_永远_不要在此函数返回后直接释放 @dev，即使它返回了错误也不行！
+ * 始终使用 put_device() 来放弃此函数中初始化的引用。 * 
  */
 int device_register(struct device *dev)
 {
@@ -2437,6 +2556,15 @@ EXPORT_SYMBOL_GPL(kill_device);
  *
  * NOTE: this should be called manually _iff_ device_add() was
  * also called manually.
+ * 
+ *  * device_del - 从系统中删除设备。
+ * @dev: 设备。
+ *
+ * 这是设备注销序列的第一步。它将设备从我们在此处控制的链表中移除，
+ * 从它在 device_add() 中被添加到的其他驱动模型子系统中移除，
+ * 并将其从 kobject 层次结构中移除。
+ *
+ * 注意：_仅当_ device_add() 也是手动调用时，才应手动调用此函数。
  */
 void device_del(struct device *dev)
 {
@@ -2513,6 +2641,16 @@ EXPORT_SYMBOL_GPL(device_del);
  * is the final reference count, the device will be cleaned up
  * via device_release() above. Otherwise, the structure will
  * stick around until the final reference to the device is dropped.
+ * 
+* device_unregister - 从系统中注销设备。
+ * @dev: 要移除的设备。
+ *
+ * 我们分两步完成，就像 device_register() 一样。首先，
+ * 我们通过 device_del() 将设备从所有子系统中移除，然后
+ * 通过 put_device() 递减引用计数。如果这是最后一个引用计数，
+ * 设备将通过上述的 device_release() 进行清理。
+ * 否则，该结构体将持续存在，直到设备的最后一个引用被释放。 * 
+ * 
  */
 void device_unregister(struct device *dev)
 {
@@ -2604,6 +2742,17 @@ const char *device_get_devnode(struct device *dev,
  *
  * We check the return of @fn each time. If it returns anything
  * other than 0, we break out and return that value.
+ * 
+ * device_for_each_child - 设备子设备迭代器。
+ * @parent: 父设备结构体。
+ * @fn: 为每个子设备调用的函数。
+ * @data: 传递给回调函数的数据。
+ *
+ * 遍历 @parent 的子设备，并对每个子设备调用 @fn，
+ * 同时将 @data 传递给它。
+ *
+ * 每次都会检查 @fn 的返回值。如果它返回 0 以外的任何值，
+ * 我们就终止遍历并返回该值。
  */
 int device_for_each_child(struct device *parent, void *data,
 			  int (*fn)(struct device *dev, void *data))
@@ -2634,7 +2783,18 @@ EXPORT_SYMBOL_GPL(device_for_each_child);
  *
  * We check the return of @fn each time. If it returns anything
  * other than 0, we break out and return that value.
- */
+ * 
+ * device_for_each_child_reverse - 设备子设备反向迭代器。
+ * @parent: 父设备结构体。
+ * @fn: 为每个子设备调用的函数。
+ * @data: 传递给回调函数的数据。
+ *
+ * 以反向顺序遍历 @parent 的子设备，并对每个子设备调用 @fn，
+ * 同时将 @data 传递给它。
+ *
+ * 每次都会检查 @fn 的返回值。如果它返回 0 以外的任何值，
+ * 我们就终止遍历并返回该值。 
+ * */
 int device_for_each_child_reverse(struct device *parent, void *data,
 				  int (*fn)(struct device *dev, void *data))
 {
@@ -2669,7 +2829,21 @@ EXPORT_SYMBOL_GPL(device_for_each_child_reverse);
  * and not iterate over any more devices.
  *
  * NOTE: you will need to drop the reference with put_device() after use.
- */
+ * 
+*  device_find_child - 用于定位特定设备的子设备迭代器。
+ * @parent: 父设备结构体
+ * @match: 用于检查设备的回调函数
+ * @data: 传递给匹配函数的数据
+ *
+ * 此函数类似于上面的 device_for_each_child() 函数，但它会返回一个
+ * 被“找到”的设备的引用，供后续使用，具体由 @match 回调决定。
+ *
+ * 如果设备不匹配，回调应返回 0；如果匹配，则返回非零值。
+ * 如果回调返回非零值，并且可以获取到当前设备的引用，
+ * 此函数将返回给调用者，不再继续遍历更多设备。
+ *
+ * 注意：使用完毕后，需要通过 put_device() 释放该引用。
+ *  */
 struct device *device_find_child(struct device *parent, void *data,
 				 int (*match)(struct device *dev, void *data))
 {
@@ -2831,7 +3005,25 @@ static void root_device_release(struct device *dev)
  * Returns &struct device pointer on success, or ERR_PTR() on error.
  *
  * Note: You probably want to use root_device_register().
- */
+ * 
+ * __root_device_register - 分配并注册一个根设备
+ * @name: 根设备名称
+ * @owner: 根设备的所有者模块，通常为 THIS_MODULE
+ *
+ * 此函数分配一个根设备并使用 device_register() 进行注册。
+ * 如需释放返回的设备，请使用 root_device_unregister()。
+ *
+ * 根设备是允许将其他设备组织在 /sys/devices 下的虚拟设备。
+ * 使用此函数分配一个根设备，然后将其用作任何应出现在
+ * /sys/devices/{name} 下的设备的父设备。
+ *
+ * /sys/devices/{name} 目录还将包含一个 'module' 符号链接，
+ * 指向 sysfs 中的 @owner 目录。
+ *
+ * 成功时返回 &struct device 指针，出错时返回 ERR_PTR()。
+ *
+ * 注意：您可能更想使用 root_device_register()。
+ *  */
 struct device *__root_device_register(const char *name, struct module *owner)
 {
 	struct root_device *root;
@@ -2878,7 +3070,12 @@ EXPORT_SYMBOL_GPL(__root_device_register);
  *
  * This function unregisters and cleans up a device that was created by
  * root_device_register().
- */
+ * 
+* root_device_unregister - 注销并释放一个根设备
+ * @dev: 要移除的设备
+ *
+ * 此函数注销并清理由 root_device_register() 创建的设备。 
+ * */
 void root_device_unregister(struct device *dev)
 {
 	struct root_device *root = to_root_device(dev);
@@ -2962,7 +3159,28 @@ error:
  *
  * Note: the struct class passed to this function must have previously
  * been created with a call to class_create().
- */
+ * 
+*  device_create_vargs - 创建一个设备并将其注册到 sysfs
+ * @class: 指向此设备应注册到的 struct class 的指针
+ * @parent: 指向此新设备的父 struct device 的指针（如果有的话）
+ * @devt: 要添加的字符设备的 dev_t 设备号
+ * @drvdata: 要添加到设备中供回调使用的数据
+ * @fmt: 设备名称的格式化字符串
+ * @args: 设备名称的 va_list
+ *
+ * 此函数可由字符设备类使用。一个 struct device 将被创建在 sysfs 中，
+ * 并注册到指定的类中。
+ *
+ * 如果 dev_t 不是 0,0，则会创建一个 "dev" 文件，显示该设备的 dev_t。
+ * 如果传入了一个指向父 struct device 的指针，新创建的 struct device
+ * 将成为 sysfs 中该设备的子设备。
+ * 调用将返回指向该 struct device 的指针。
+ * 任何可能需要的其他 sysfs 文件都可以使用此指针来创建。
+ *
+ * 成功时返回 &struct device 指针，出错时返回 ERR_PTR()。
+ *
+ * 注意：传递给此函数的 struct class 必须已通过调用 class_create() 预先创建。 
+ * */
 struct device *device_create_vargs(struct class *class, struct device *parent,
 				   dev_t devt, void *drvdata, const char *fmt,
 				   va_list args)
@@ -2995,8 +3213,28 @@ EXPORT_SYMBOL_GPL(device_create_vargs);
  *
  * Note: the struct class passed to this function must have previously
  * been created with a call to class_create().
+ * 
+ * device_create - 创建一个设备并将其注册到 sysfs
+ * @class: 指向此设备应注册到的 struct class 的指针
+ * @parent: 指向此新设备的父 struct device 的指针（如果有的话）
+ * @devt: 要添加的字符设备的 dev_t 设备号
+ * @drvdata: 要添加到设备中供回调使用的数据
+ * @fmt: 设备名称的格式化字符串
+ *
+ * 此函数可由字符设备类使用。一个 struct device 将被创建在 sysfs 中，
+ * 并注册到指定的类中。
+ *
+ * 如果 dev_t 不是 0,0，则会创建一个 "dev" 文件，显示该设备的 dev_t。
+ * 如果传入了一个指向父 struct device 的指针，新创建的 struct device
+ * 将成为 sysfs 中该设备的子设备。
+ * 调用将返回指向该 struct device 的指针。
+ * 任何可能需要的其他 sysfs 文件都可以使用此指针来创建。
+ *
+ * 成功时返回 &struct device 指针，出错时返回 ERR_PTR()。
+ *
+ * 注意：传递给此函数的 struct class 必须已通过调用 class_create() 预先创建。
  */
-struct device *device_create(struct class *class, struct device *parent,
+ struct device *device_create(struct class *class, struct device *parent,
 			     dev_t devt, void *drvdata, const char *fmt, ...)
 {
 	va_list vargs;
@@ -3067,6 +3305,12 @@ static int __match_devt(struct device *dev, const void *data)
  *
  * This call unregisters and cleans up a device that was created with a
  * call to device_create().
+ * 
+ * device_destroy - 删除由 device_create() 创建的设备
+ * @class: 指向此设备注册时所在的 struct class 的指针
+ * @devt: 先前注册的设备的 dev_t 设备号
+ *
+ * 此调用将注销并清理之前通过调用 device_create() 创建的设备。
  */
 void device_destroy(struct class *class, dev_t devt)
 {
@@ -3177,6 +3421,11 @@ static int device_move_class_links(struct device *dev,
  * @dev: the pointer to the struct device to be moved
  * @new_parent: the new parent of the device (can be NULL)
  * @dpm_order: how to reorder the dpm_list
+ * 
+ * device_move - 将设备移动到新的父设备下
+ * @dev: 指向要移动的 struct device 的指针
+ * @new_parent: 设备的新父设备（可以是 NULL）
+ * @dpm_order: 如何重新排列 dpm_list 的顺序
  */
 int device_move(struct device *dev, struct device *new_parent,
 		enum dpm_order dpm_order)
@@ -3536,7 +3785,13 @@ void set_secondary_fwnode(struct device *dev, struct fwnode_handle *fwnode)
  *
  * Takes another reference to the new device-tree node after first dropping
  * any reference held to the old node.
- */
+ * 
+*  device_set_of_node_from_dev - 重用另一个设备的设备树节点
+ * @dev: 正在设置其设备树节点的设备
+ * @dev2: 其设备树节点正被重用的设备
+ *
+ * 首先释放对旧节点持有的任何引用，然后获取对新设备树节点的另一份引用。
+ *  */
 void device_set_of_node_from_dev(struct device *dev, const struct device *dev2)
 {
 	of_node_put(dev->of_node);

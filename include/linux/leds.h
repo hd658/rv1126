@@ -64,12 +64,19 @@ struct led_classdev {
 	/* Set LED brightness level
 	 * Must not sleep. Use brightness_set_blocking for drivers
 	 * that can sleep while setting brightness.
+	 * 
+	 * translate to zh-CN:
+	 * 设置LED亮度级别
+	 * 必须不睡眠。对于在设置亮度时可能会睡眠的驱动程序，
+	 * 请使用brightness_set_blocking。
 	 */
 	void		(*brightness_set)(struct led_classdev *led_cdev,
 					  enum led_brightness brightness);
 	/*
 	 * Set LED brightness level immediately - it can block the caller for
 	 * the time required for accessing a LED device register.
+	 * translate to zh-CN:
+	 * 立即设置LED亮度级别 - 它可以阻塞调用者访问LED设备寄存器所需的时间。
 	 */
 	int (*brightness_set_blocking)(struct led_classdev *led_cdev,
 				       enum led_brightness brightness);
@@ -83,6 +90,10 @@ struct led_classdev {
 	 * match the values specified exactly.
 	 * Deactivate blinking again when the brightness is set to LED_OFF
 	 * via the brightness_set() callback.
+	 * translate to zh-CN:
+	 * 激活硬件加速闪烁，延迟以毫秒为单位，如果两者都是零，则应该选择一个合理的默认值。在这种情况下，调用应该调整时序，如果它不能完全匹配指定的值。
+	 * 当通过brightness_set()回调将亮度设置为LED_OFF时再次停用闪烁。
+	 * 
 	 */
 	int		(*blink_set)(struct led_classdev *led_cdev,
 				     unsigned long *delay_on,
@@ -153,6 +164,17 @@ extern void led_classdev_resume(struct led_classdev *led_cdev);
  * Note that if software blinking is active, simply calling
  * led_cdev->brightness_set() will not stop the blinking,
  * use led_classdev_brightness_set() instead.
+ * 
+ * 
+ * translate to zh-CN:
+ * led_blink_set - 设置带有软件回退的闪烁
+ * @led_cdev: 要开始闪烁的LED
+ * @delay_on: 它应该打开的时间（以毫秒为单位）
+ * @delay_off: 它应该关闭的时间（以毫秒为单位）
+ * 
+ * 这个函数使LED闪烁，尝试使用硬件加速，如果没有硬件闪烁或LED拒绝传递的值，则回退到软件闪烁。
+ * 请注意，如果软件闪烁处于活动状态，简单地调用led_cdev->brightness_set()将不会停止闪烁，请使用led_classdev_brightness_set()代替。
+ * 
  */
 extern void led_blink_set(struct led_classdev *led_cdev,
 			  unsigned long *delay_on,
@@ -170,6 +192,17 @@ extern void led_blink_set(struct led_classdev *led_cdev,
  *
  * If invert is set, led blinks for delay_off first, then for
  * delay_on and leave the led on after the on-off cycle.
+ * 
+ * translate to zh-CN:
+ * led_blink_set_oneshot - 执行一次性软件闪烁
+ * @led_cdev: 要开始闪烁的LED
+ * @delay_on: 它应该打开的时间（以毫秒为单位）
+ * @delay_off: 它应该关闭的时间（以毫秒为单位）
+ * @invert: 先关闭再打开，保持LED打开
+ * 
+ * 这个函数使LED闪烁一次，持续delay_on + delay_off时间，如果另一个单次闪烁已经在进行中，则忽略请求。
+ * 如果设置了invert，led首先闪烁delay_off，然后闪烁delay_on，并在开关周期后保持led打开。
+ * 
  */
 extern void led_blink_set_oneshot(struct led_classdev *led_cdev,
 				  unsigned long *delay_on,
@@ -183,6 +216,12 @@ extern void led_blink_set_oneshot(struct led_classdev *led_cdev,
  * Set an LED's brightness, and, if necessary, cancel the
  * software blink timer that implements blinking when the
  * hardware doesn't. This function is guaranteed not to sleep.
+ * 
+ * translate to zh-CN:
+ * led_set_brightness - 设置LED亮度
+ * @led_cdev: 要设置的LED
+ * @brightness: 要设置的亮度
+ * 设置LED的亮度，并在必要时取消实现当硬件没有闪烁时闪烁的软件闪烁定时器。这个函数保证不会睡眠。
  */
 extern void led_set_brightness(struct led_classdev *led_cdev,
 			       enum led_brightness brightness);
@@ -197,6 +236,12 @@ extern void led_set_brightness(struct led_classdev *led_cdev,
  * and it can sleep.
  *
  * Returns: 0 on success or negative error value on failure
+ * 
+ * translate to zh-CN:
+ * led_set_brightness_sync - 同步设置LED亮度
+ * @led_cdev: 要设置的LED
+ * @brightness: 要设置的亮度
+ * 立即设置LED的亮度。这个函数将阻塞调用者访问设备寄存器所需的时间，并且它可以睡眠。
  */
 extern int led_set_brightness_sync(struct led_classdev *led_cdev,
 				   enum led_brightness value);

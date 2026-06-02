@@ -179,6 +179,9 @@ EXPORT_SYMBOL_GPL(led_classdev_suspend);
 /**
  * led_classdev_resume - resume an led_classdev.
  * @led_cdev: the led_classdev to resume.
+ * 
+ * led_classdev_resume - 恢复一个 LED 类设备。
+ * @led_cdev: 要恢复的 LED 类设备。 * 
  */
 void led_classdev_resume(struct led_classdev *led_cdev)
 {
@@ -249,6 +252,12 @@ static int led_classdev_next_name(const char *init_name, char *name,
  * @parent: parent of LED device
  * @led_cdev: the led_classdev structure for this device.
  * @np: DT node describing this LED
+ * 
+ * of_led_classdev_register - 注册一个 led_classdev 类的新对象。
+ *
+ * @parent: LED 设备的父设备
+ * @led_cdev: 该设备的 led_classdev 结构体
+ * @np: 描述该 LED 的设备树节点 * 
  */
 int of_led_classdev_register(struct device *parent, struct device_node *np,
 			    struct led_classdev *led_cdev)

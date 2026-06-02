@@ -34,6 +34,8 @@ struct gpio_descs {
 /**
  * Optional flags that can be passed to one of gpiod_* to configure direction
  * and output value. These values cannot be OR'd.
+可以传递给某个 gpiod_*函数的可选标志，用于配置方向和输出值。
+这些值不能进行 OR 操作（即不能组合使用）。 
  */
 enum gpiod_flags {
 	GPIOD_ASIS	= 0,

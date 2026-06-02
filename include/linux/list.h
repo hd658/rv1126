@@ -87,6 +87,13 @@ static inline void list_add(struct list_head *new, struct list_head *head)
  *
  * Insert a new entry before the specified head.
  * This is useful for implementing queues.
+ * ```
+ * list_add_tail - 添加一个新条目
+ * @new: 要添加的新条目
+ * @head: 要将其添加到它前面的链表头
+ *
+ * 在指定的链表头之前插入一个新条目。
+ * 这对于实现队列很有用。
  */
 static inline void list_add_tail(struct list_head *new, struct list_head *head)
 {
@@ -391,6 +398,11 @@ static inline void list_splice_tail_init(struct list_head *list,
  * @ptr:	the &struct list_head pointer.
  * @type:	the type of the struct this is embedded in.
  * @member:	the name of the list_head within the struct.
+ * 
+ * * list_entry - 根据当前条目获取其所属的结构体
+ * @ptr:    指向 struct list_head 的指针。
+ * @type:   该链表节点所嵌入的结构体的类型。
+ * @member: 结构体中链表节点成员的名字。
  */
 #define list_entry(ptr, type, member) \
 	container_of(ptr, type, member)
@@ -402,6 +414,13 @@ static inline void list_splice_tail_init(struct list_head *list,
  * @member:	the name of the list_head within the struct.
  *
  * Note, that list is expected to be not empty.
+ * 
+ * list_first_entry - 从链表中获取第一个元素
+ * @ptr:	要从中取元素的链表头。
+ * @type:	链表节点所嵌入的结构体的类型。
+ * @member:	该结构体中链表节点（list_head）的成员名。
+ *
+ * 注意，该链表应确保不为空。
  */
 #define list_first_entry(ptr, type, member) \
 	list_entry((ptr)->next, type, member)
@@ -489,6 +508,11 @@ static inline void list_splice_tail_init(struct list_head *list,
  * @pos:	the type * to use as a loop cursor.
  * @head:	the head for your list.
  * @member:	the name of the list_head within the struct.
+ * 
+ * list_for_each_entry - 遍历给定类型的链表
+ * @pos: 用作循环游标的类型指针。
+ * @head: 链表的头节点。
+ * @member: 结构体中链表节点的成员名。
  */
 #define list_for_each_entry(pos, head, member)				\
 	for (pos = list_first_entry(head, typeof(*pos), member);	\
@@ -576,6 +600,13 @@ static inline void list_splice_tail_init(struct list_head *list,
  * @n:		another type * to use as temporary storage
  * @head:	the head for your list.
  * @member:	the name of the list_head within the struct.
+ * 
+ * list_for_each_entry_safe - 遍历给定类型的链表，可安全地在遍历过程中删除链表项
+ * @pos:	用作循环游标的 type * 指针。
+ * @n:		另一个 type * 指针，用于临时存储
+ * @head:	链表的头部。
+ * @member:	结构体中 list_head 成员的名称。
+ *  * 
  */
 #define list_for_each_entry_safe(pos, n, head, member)			\
 	for (pos = list_first_entry(head, typeof(*pos), member),	\

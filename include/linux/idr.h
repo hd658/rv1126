@@ -267,6 +267,18 @@ static inline int ida_alloc(struct ida *ida, gfp_t gfp)
  * Context: Any context.
  * Return: The allocated ID, or %-ENOMEM if memory could not be allocated,
  * or %-ENOSPC if there are no free IDs.
+ * 
+ * ida_alloc_min() - 分配一个未使用的 ID。
+ * @ida: IDA 句柄。
+ * @min: 可分配的最小 ID。
+ * @gfp: 内存分配标志。
+ *
+ * 分配一个介于 @min 和 %INT_MAX 之间（含两端）的 ID。
+ *
+ * 上下文：任何上下文。
+ * 返回值：分配的 ID，如果无法分配内存则返回 %-ENOMEM，
+ * 如果没有空闲 ID 则返回 %-ENOSPC。
+ *  * 
  */
 static inline int ida_alloc_min(struct ida *ida, unsigned int min, gfp_t gfp)
 {

@@ -6,6 +6,12 @@
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
  * the Free Software Foundation.
+ * * 事件字符设备，提供对原始输入设备事件的访问。
+*
+* 版权所有 (c) 1999-2002 Vojtech Pavlik
+*
+* 本程序为自由软件；您可依据自由软件基金会发布的
+* GNU 通用公共许可证第 2 版条款，对其进行再发布和/或修改。
  */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt

@@ -1729,6 +1729,10 @@ static inline void hidinput_configure_usages(struct hid_input *hidinput,
  * Register the input device; print a message.
  * Configure the input layer interface
  * Read all reports and initialize the absolute field values.
+ * 
+ * 注册输入设备；打印一条消息。
+ * 配置输入层接口
+ * 读取所有报告并初始化绝对值字段。
  */
 
 int hidinput_connect(struct hid_device *hid, unsigned int force)

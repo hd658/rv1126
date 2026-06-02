@@ -388,6 +388,22 @@ EXPORT_SYMBOL_GPL(class_for_each_device);
  *
  * @match is allowed to do anything including calling back into class
  * code.  There's no locking restriction.
+ * 
+ * class_find_device - 用于定位特定设备的设备迭代器
+ * @class: 我们要遍历的类
+ * @start: 从哪个设备开始
+ * @data: 传递给匹配函数的数据
+ * @match: 用于检查设备的函数
+ *
+ * 此函数类似于上面的 class_for_each_dev()，但它会将“找到”的设备的引用返回，
+ * 以备后用，具体是否找到由 @match 回调决定。
+ *
+ * 如果设备不匹配，回调应返回 0；如果匹配，则返回非零值。
+ * 一旦回调返回非零值，此函数就会立即返回给调用者，不再继续遍历其他设备。
+ *
+ * 注意，使用完毕后需要调用 put_device() 释放该设备引用。
+ *
+ * @match 回调中允许执行任何操作，包括回调到类代码中。没有任何锁限制。
  */
 struct device *class_find_device(struct class *class, struct device *start,
 				 const void *data,

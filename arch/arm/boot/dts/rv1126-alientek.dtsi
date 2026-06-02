@@ -6,6 +6,7 @@
 #include <dt-bindings/display/drm_mipi_dsi.h>
 #include <dt-bindings/input/input.h>
 
+
 / {
 	adc-keys {
 		compatible = "adc-keys";
@@ -142,6 +143,7 @@
 			sound-dai = <&rk809_codec>;
 		};
 	};
+
 
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";

@@ -406,6 +406,26 @@ static __printf(3, 0) int kobject_add_varg(struct kobject *kobj,
  * up all of the necessary sysfs files for the object and then call
  * kobject_uevent() with the UEVENT_ADD parameter to ensure that
  * userspace is properly notified of this kobject's creation.
+ * 
+ * kobject_add - 主要的 kobject 添加函数
+ * @kobj: 要添加的 kobject
+ * @parent: 指向该 kobject 父对象的指针。
+ * @fmt: 用于命名该 kobject 的格式化字符串。
+ *
+ * 在此函数中，kobject 的名称被设置，并被添加到 kobject 层次结构中。
+ *
+ * 如果 @parent 已设置，则 @kobj 的父对象将被设为它。
+ * 如果 @parent 为 NULL，则 @kobj 的父对象将被设为与该 kobject 所关联的
+ * kset 相对应的 kobject。如果该 kobject 没有关联任何 kset，那么它将
+ * 位于 sysfs 树的根目录下。
+ *
+ * 如果此函数返回错误，必须调用 kobject_put() 来正确清理与该对象关联的内存。
+ * 任何情况下都不应该直接使用 kfree() 来释放传入此函数的 kobject，
+ * 那样做可能导致内存泄漏。
+ *
+ * 注意，此调用不会创建 "add" uevent，调用者应当为对象设置好所有必要的
+ * sysfs 文件，然后以 UEVENT_ADD 参数调用 kobject_uevent()，
+ * 以确保用户空间正确获知此 kobject 的创建。 * 
  */
 int kobject_add(struct kobject *kobj, struct kobject *parent,
 		const char *fmt, ...)
@@ -697,6 +717,11 @@ static void kobject_release(struct kref *kref)
  * @kobj: object.
  *
  * Decrement the refcount, and if 0, call kobject_cleanup().
+ * 
+ *  * kobject_put - 递减对象的引用计数。
+ * @kobj: 对象。
+ *
+ * 递减引用计数，如果计数变为 0，则调用 kobject_cleanup()。
  */
 void kobject_put(struct kobject *kobj)
 {

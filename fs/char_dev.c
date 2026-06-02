@@ -95,6 +95,16 @@ static int find_dynamic_major(void)
  * minors and will return zero on success.
  *
  * Returns a -ve errno on failure.
+ * 
+ * 注册一个主设备号及其指定的次设备号范围。
+ *
+ * 如果 major == 0，此函数将动态分配一个主设备号并返回其编号。
+ *
+ * 如果 major > 0，此函数将尝试保留传入的次设备号范围，
+ * 并在成功时返回零。
+ *
+ * 失败时返回负的错误码。
+ * 
  */
 static struct char_device_struct *
 __register_chrdev_region(unsigned int major, unsigned int baseminor,
@@ -273,6 +283,24 @@ int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count,
  * /dev. It only helps to keep track of the different owners of devices. If
  * your module name has only one type of devices it's ok to use e.g. the name
  * of the module here.
+ * 
+ * __register_chrdev() - 创建并注册一个占据一段次设备号范围的字符设备
+ * @major: 主设备号，或传入 0 以动态分配
+ * @baseminor: 所请求的次设备号范围的起始值
+ * @count: 所需的次设备号数量
+ * @name: 此设备范围的名称
+ * @fops: 关联到此设备的文件操作集
+ *
+ * 如果 @major == 0，此函数将动态分配一个主设备号并返回其号码。
+ *
+ * 如果 @major > 0，此函数将尝试保留具有给定主设备号的设备，
+ * 并在成功时返回零。
+ *
+ * 失败时返回负的错误码。
+ *
+ * 此设备的名称与 /dev 中的设备名称没有任何关系。
+ * 它仅用于帮助跟踪不同设备的归属者。如果你的模块只有一种类型的设备，
+ * 那么使用模块的名称作为这里的参数也是可以的。
  */
 int __register_chrdev(unsigned int major, unsigned int baseminor,
 		      unsigned int count, const char *name,
@@ -484,6 +512,14 @@ static int exact_lock(dev_t dev, void *data)
  *
  * cdev_add() adds the device represented by @p to the system, making it
  * live immediately.  A negative error code is returned on failure.
+ * 
+ * cdev_add() - 向系统添加一个字符设备
+ * @p: 设备的 cdev 结构体
+ * @dev: 此设备负责的第一个设备号
+ * @count: 与此设备对应的连续次设备号的数量
+ *
+ * cdev_add() 将 @p 表示的设备添加到系统中，使其立即生效。
+ * 失败时返回一个负的错误码。
  */
 int cdev_add(struct cdev *p, dev_t dev, unsigned count)
 {
@@ -539,6 +575,27 @@ void cdev_set_parent(struct cdev *p, struct kobject *kobj)
  *
  * NOTE: Callers must assume that userspace was able to open the cdev and
  * can call cdev fops callbacks at any time, even if this function fails.
+ * 
+ * 
+ * cdev_device_add() - 添加一个字符设备及其对应的
+ * struct device，将它们关联起来
+ * @dev: 设备结构体
+ * @cdev: cdev 结构体
+ *
+ * cdev_device_add() 将 @cdev 表示的字符设备添加到系统中，
+ * 就像 cdev_add 所做的那样。然后它使用 device_add 将 @dev 添加到系统中。
+ * 字符设备的 dev_t 将从 struct device 中获取，
+ * 因此需要先初始化该结构体。此辅助函数会正确地获取父设备的引用，
+ * 这样在释放所有对 cdev 的引用之前，父设备不会被释放。
+ *
+ * 此辅助函数使用 dev->devt 作为设备号。如果 dev->devt 未设置，
+ * 它将不会添加 cdev，此时该函数等同于 device_add。
+ *
+ * 当 struct cdev 和 struct device 属于同一个结构体的成员，
+ * 且该结构体的生命周期由 struct device 管理时，应使用此函数。
+ *
+ * 注意：调用者必须假定用户空间已经能够打开该 cdev，
+ * 并且可以随时调用 cdev 的 fops 回调，即使此函数执行失败也是如此。
  */
 int cdev_device_add(struct cdev *cdev, struct device *dev)
 {
@@ -596,6 +653,14 @@ static void cdev_unmap(dev_t dev, unsigned count)
  * NOTE: This guarantees that cdev device will no longer be able to be
  * opened, however any cdevs already open will remain and their fops will
  * still be callable even after cdev_del returns.
+ * 
+ * cdev_del() - 从系统中移除一个字符设备
+ * @p: 要移除的字符设备结构体
+ *
+ * cdev_del() 将 @p 从系统中移除，可能会释放该结构体本身。
+ *
+ * 注意：这保证该字符设备将不再能被打开，但已经打开的字符设备将保持打开状态，
+ * 并且即使在 cdev_del 返回后，其文件操作集依然可被调用。
  */
 void cdev_del(struct cdev *p)
 {
@@ -653,6 +718,13 @@ struct cdev *cdev_alloc(void)
  *
  * Initializes @cdev, remembering @fops, making it ready to add to the
  * system with cdev_add().
+ * 
+ * cdev_init() - 初始化一个 cdev 结构体
+ * @cdev: 要初始化的结构体
+ * @fops: 该设备的 file_operations 操作集
+ *
+ * 初始化 @cdev，记住 @fops，使其准备好通过 cdev_add() 添加到系统中。
+ * 
  */
 void cdev_init(struct cdev *cdev, const struct file_operations *fops)
 {

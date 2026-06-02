@@ -2457,6 +2457,14 @@ EXPORT_SYMBOL(snprintf);
  *
  * The return value is the number of characters written into @buf not including
  * the trailing '\0'. If @size is == 0 the function returns 0.
+ * 
+ * scnprintf - 格式化字符串并将其放入缓冲区
+ * @buf: 用于存放结果的缓冲区
+ * @size: 缓冲区的大小，包括结尾的空字符空间
+ * @fmt: 要使用的格式字符串
+ * @...: 格式字符串的参数
+ *
+ * 返回值是写入 @buf 的字符数，不包括结尾的 '\0'。如果 @size 为 0，函数返回 0。 * 
  */
 
 int scnprintf(char *buf, size_t size, const char *fmt, ...)

@@ -1015,7 +1015,18 @@ EXPORT_SYMBOL_GPL(hid_validate_values);
  *
  * This function (or the equivalent hid_parse() macro) should only be
  * called from probe() in drivers, before starting the device.
- */
+ * 
+ * hid_open_report - 打开一个驱动特定的设备报告
+*
+* @device: HID 设备
+*
+* 将报告描述符解析到 hid_device 结构体中。报告被枚举，
+* 字段被附加到这些报告上。
+* 成功返回 0，否则返回非零错误码。
+*
+* 此函数（或等效的 hid_parse() 宏）应仅在驱动的 probe() 中调用，
+* 且需在启动设备之前调用。
+*/
 int hid_open_report(struct hid_device *device)
 {
 	struct hid_parser *parser;
@@ -1275,6 +1286,13 @@ static int search(__s32 *array, __s32 value, unsigned n)
  * @report_type: type to match against
  *
  * compare hid->driver->report_table->report_type to report->type
+ * 
+ * hid_match_report - 检查是否应调用驱动的 raw_event
+ * @hid: HID 设备
+ * @report_type: 要匹配的报告类型
+ *
+ * 比较 hid->driver->report_table->report_type 与 report->type
+ * 
  */
 static int hid_match_report(struct hid_device *hid, struct hid_report *report)
 {
@@ -1610,6 +1628,16 @@ EXPORT_SYMBOL_GPL(hid_report_raw_event);
  * @interrupt: distinguish between interrupt and control transfers
  *
  * This is data entry for lower layers.
+ * * hid_input_report - 来自底层（usb、蓝牙等）的报告数据
+*
+* 	@hid: HID 设备
+* 	@type: HID 报告类型（HID_*_REPORT）
+* 	@data: 报告内容
+* 	@size: data 参数的大小
+* 	@interrupt: 区分中断传输和控制传输
+*
+* 这是给底层传入数据的入口点。
+ * 
  */
 int hid_input_report(struct hid_device *hid, int type, u8 *data, u32 size, int interrupt)
 {
@@ -1628,6 +1656,7 @@ int hid_input_report(struct hid_device *hid, int type, u8 *data, u32 size, int i
 		ret = -ENODEV;
 		goto unlock;
 	}
+
 	report_enum = hid->report_enum + type;
 	hdrv = hid->driver;
 
@@ -1847,6 +1876,15 @@ EXPORT_SYMBOL_GPL(hid_disconnect);
  * Call this in probe function *after* hid_parse. This will setup HW
  * buffers and start the device (if not defeirred to device open).
  * hid_hw_stop must be called if this was successful.
+ * 
+ * hid_hw_start - 启动底层硬件
+ * @hdev: HID 设备
+ * @connect_mask: 要连接哪些输出，参见 HID_CONNECT_*
+ *
+ * 在 probe 函数中调用此函数，调用时机必须在 hid_parse 之后。
+ * 它将设置硬件缓冲区并启动设备（如果未推迟到设备打开时）。
+ * 如果此函数成功，必须调用 hid_hw_stop。
+ * 
  */
 int hid_hw_start(struct hid_device *hdev, unsigned int connect_mask)
 {

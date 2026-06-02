@@ -67,3 +67,60 @@ i2c0: i2c@2002d000 {
 	i2c-scl-rising-time-ns = <800>;
 	i2c-scl-falling-time-ns = <100>;
 };
+* Rockchip RK3xxx I2C 控制器
+
+此驱动程序与 Rockchip RK3xxx SoCs 中的原生 I2C 控制器交互。
+
+必需属性：
+
+- reg：设备寄存器集的偏移量和长度
+- compatible：应为以下之一：
+  - "rockchip,rv1108-i2c"：适用于 rv1108
+  - "rockchip,rv1126-i2c"：适用于 rv1126
+  - "rockchip,rk3066-i2c"：适用于 rk3066
+  - "rockchip,rk3188-i2c"：适用于 rk3188
+  - "rockchip,rk3228-i2c"：适用于 rk3228
+  - "rockchip,rk3288-i2c"：适用于 rk3288
+  - "rockchip,rk3328-i2c", "rockchip,rk3399-i2c"：适用于 rk3328
+  - "rockchip,rk3399-i2c"：适用于 rk3399
+- interrupts：中断号
+- clocks：参见 ../clock/clock-bindings.txt
+  - 对于旧硬件（rk3066、rk3188、rk3228、rk3288）：
+    - 有一个时钟同时用于派生设备的功能时钟和作为总线时钟。
+  - 对于新硬件（rk3399）：通过名称指定
+    - "i2c"：用于派生功能时钟。
+    - "pclk"：这是总线时钟。
+
+RK3066、RK3188 上的必需项：
+
+- rockchip,grf：通用寄存器文件 (GRF) 的 syscon 节点的 phandle
+- 在这些 SoCs 上，还需要具有正确 I2C 总线 ID（GRF 中的位偏移）的别名。
+
+可选属性：
+
+- clock-frequency：使用的 SCL 频率（以 Hz 为单位）。如果省略，则使用 100kHz。
+- i2c-scl-rising-time-ns：SCL 信号上升所需的纳秒数（I2C 规范中的 t(r)）。如果未指定，则假定为规范允许的最大值（标准模式为 1000 ns，快速模式为 300 ns），这可能会导致通信稍慢。
+- i2c-scl-falling-time-ns：SCL 信号下降所需的纳秒数（I2C 规范中的 t(f)）。如果未指定，则假定为规范允许的最大值（300 ns），这可能会导致通信稍慢。
+- i2c-sda-falling-time-ns：SDA 信号下降所需的纳秒数（I2C 规范中的 t(f)）。如果未指定，我们将使用 SCL 值，因为在几乎所有情况下它们是相同的。
+
+示例：
+
+aliases {
+    i2c0 = &i2c0;
+}
+
+i2c0: i2c@2002d000 {
+    compatible = "rockchip,rk3188-i2c";
+    reg = <0x2002d000 0x1000>;
+    interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    rockchip,grf = <&grf>;
+
+    clock-names = "i2c";
+    clocks = <&cru PCLK_I2C0>;
+
+    i2c-scl-rising-time-ns = <800>;
+    i2c-scl-falling-time-ns = <100>;
+};

@@ -1359,6 +1359,8 @@ static int __of_parse_phandle_with_args(const struct device_node *np,
 		 * this point, the parsing is successful. If the requested
 		 * index matches, then fill the out_args structure and return,
 		 * or return -ENOENT for an empty entry.
+		 * 所有错误情况都会跳出循环，所以在这一点上，解析是成功的。如果请求的索引匹配，
+		 * 则填充 out_args 结构体并返回，或者对于空条目返回 -ENOENT。
 		 */
 		rc = -ENOENT;
 		if (cur_index == index) {
@@ -1505,7 +1507,38 @@ EXPORT_SYMBOL(of_parse_phandle_with_args);
  *
  * To get a device_node of the `node2' node you may call this:
  * of_parse_phandle_with_args(node4, "list", "list", 1, &args);
- */
+ * 
+of_parse_phandle_with_args_map() - 
+在列表中查找由 phandle 指向的节点并进行重新映射
+@np: 指向包含列表的设备树节点的指针
+@list_name: 包含列表的属性名
+@stem_name: 指定 phandle 参数数量的属性名的词干
+@index: 要解析的 phandle 的索引
+@out_args: 可选的输出参数结构体指针（将被填充）
+此函数用于解析 phandle 及其参数的列表。成功时返回 0 并填充 out_args，
+出错时返回适当的 errno 值。此函数与 of_parse_phandle_with_args() 的区别在于，
+如果 phandle 指向的节点具有 <@stem_name>-map 属性，此 API 会重新映射该 phandle。
+调用者负责在返回的 out_args->np 指针上调用 of_node_put()。
+示例：
+phandle1: node1 {
+#list-cells = <2>;
+}
+phandle2: node2 {
+#list-cells = <1>;
+}
+phandle3: node3 {
+#list-cells = <1>;
+list-map = <0 &phandle2 3>,
+<1 &phandle2 2>,
+<2 &phandle1 5 1>;
+list-map-mask = <0x3>;
+};
+node4 {
+list = <&phandle1 1 2 &phandle3 0>;
+}
+要获取 `node2' 节点的 device_node，您可以这样调用：
+of_parse_phandle_with_args(node4, "list", "list", 1, &args); 
+*/
 int of_parse_phandle_with_args_map(const struct device_node *np,
 				   const char *list_name,
 				   const char *stem_name,

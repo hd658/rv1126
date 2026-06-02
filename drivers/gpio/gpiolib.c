@@ -38,6 +38,12 @@
  * The GPIO programming interface allows for inlining speed-critical
  * get/set operations for common cases, so that access to SOC-integrated
  * GPIOs can sometimes cost only an instruction or two per bit.
+ * 
+ * translate to zh-CN:
+ * GPIO接口的实现基础设施。
+ * GPIO编程接口允许对常见情况进行内联速度关键的get/set操作，
+ * 以便访问SOC集成的GPIO有时每位只需几条指令。
+ * 
  */
 
 
@@ -135,6 +141,13 @@ EXPORT_SYMBOL_GPL(gpio_to_desc);
  * Returns:
  * A pointer to the GPIO descriptor or %ERR_PTR(-EINVAL) if no GPIO exists
  * in the given chip for the specified hardware number.
+ * 
+ * 	gpiochip_get_desc - 获取与此芯片给定硬件编号对应的GPIO描述符
+	@chip: GPIO芯片
+	@hwnum: 此芯片的GPIO硬件编号
+	返回：
+	指向GPIO描述符的指针，如果指定硬件编号在此芯片中不存在GPIO，则返回%ERR_PTR(-EINVAL)
+ * 
  */
 struct gpio_desc *gpiochip_get_desc(struct gpio_chip *chip,
 				    u16 hwnum)
@@ -1603,6 +1616,14 @@ EXPORT_SYMBOL_GPL(devm_gpiochip_remove);
  * 0 if the device doesn't match and non-zero if it does.  If the callback is
  * non-zero, this function will return to the caller and not iterate over any
  * more gpio_chips.
+ * 
+	gpiochip_find() - 用于定位特定 gpio_chip 的迭代器
+	@data: 传递给匹配函数的数据
+	@match: 检查 gpio_chip 的回调函数
+	类似于 bus_find_device。它返回一个 gpio_chip 的引用，
+	该引用由用户提供的 @match 回调确定。如果设备不匹配，回调应返回 0；
+	如果匹配，应返回非零值。
+	如果回调返回非零值，此函数将返回给调用者，并且不再迭代任何更多的 gpio_chip。
  */
 struct gpio_chip *gpiochip_find(void *data,
 				int (*match)(struct gpio_chip *chip,
@@ -3025,6 +3046,12 @@ EXPORT_SYMBOL_GPL(gpiod_get_array_value);
  *  gpio_set_open_drain_value_commit() - Set the open drain gpio's value.
  * @desc: gpio descriptor whose state need to be set.
  * @value: Non-zero for setting it HIGH otherwise it will set to LOW.
+ * 
+ * translate to zh-CN:
+ * gpio_set_open_drain_value_commit() 
+ * - 设置开漏GPIO的值。
+ * @desc: 需要设置状态的GPIO描述符。
+ * @value: 非零表示设置为高电平，否则设置为低电平。
  */
 static void gpio_set_open_drain_value_commit(struct gpio_desc *desc, bool value)
 {
@@ -3197,6 +3224,12 @@ EXPORT_SYMBOL_GPL(gpiod_set_raw_value);
  * This sets the value of a GPIO line backing a descriptor, applying
  * different semantic quirks like active low and open drain/source
  * handling.
+ * translate to zh-CN:
+ * gpiod_set_value_nocheck() - 在不检查的情况下设置GPIO线的值
+ * @desc: 要设置值的描述符
+ * @value: 要设置的值
+ * 
+ * 这将设置一个GPIO线的值，应用不同的语义特例，如主动低和开漏/开源处理。难道不是先查看这个GPIO是被配置成输出还是输入吗？
  */
 static void gpiod_set_value_nocheck(struct gpio_desc *desc, int value)
 {
@@ -3220,6 +3253,13 @@ static void gpiod_set_value_nocheck(struct gpio_desc *desc, int value)
  *
  * This function should be called from contexts where we cannot sleep, and will
  * complain if the GPIO chip functions potentially sleep.
+ * 
+ * translate to zh-CN:
+ * gpiod_set_value() - 
+ * 分配一个gpio的值
+ * @desc: 将要分配值的gpio
+ * @value: 要分配的值
+ * 设置GPIO的逻辑值，即考虑其ACTIVE_LOW、OPEN_DRAIN和OPEN_SOURCE标志。
  */
 void gpiod_set_value(struct gpio_desc *desc, int value)
 {
@@ -3856,6 +3896,17 @@ EXPORT_SYMBOL_GPL(gpiod_count);
  * Return the GPIO descriptor corresponding to the function con_id of device
  * dev, -ENOENT if no GPIO has been assigned to the requested function, or
  * another IS_ERR() code if an error occurred while trying to acquire the GPIO.
+ * 
+ * translate to zh-CN:
+ * gpiod_get - 获取给定GPIO函数的GPIO
+ * @dev: GPIO消费者，可以是系统全局GPIO的NULL
+ * @con_id: GPIO消费者内的函数
+ * @flags: 可选的GPIO初始化标志
+ * 返回与设备dev的函数con_id对应的GPIO描述符，
+ * 如果没有GPIO被分配给请求的函数，
+ * 则返回-ENOENT；
+ * 如果在尝试获取GPIO时发生错误，则返回另一个IS_ERR()代码。
+ * 
  */
 struct gpio_desc *__must_check gpiod_get(struct device *dev, const char *con_id,
 					 enum gpiod_flags flags)
@@ -3953,7 +4004,17 @@ int gpiod_configure_flags(struct gpio_desc *desc, const char *con_id,
  * Return a valid GPIO descriptor, -ENOENT if no GPIO has been assigned to the
  * requested function and/or index, or another IS_ERR() code if an error
  * occurred while trying to acquire the GPIO.
- */
+	
+ gpiod_get_index - 从多索引GPIO函数中获取GPIO
+	@dev: GPIO消费者，对于系统全局GPIO可以为NULL
+	@con_id: GPIO消费者内的函数名
+	@idx: 要在消费者中获取的GPIO的索引
+	@flags: 可选的GPIO初始化标志
+	这是gpiod_get()的一个变体，允许访问为定义多个GPIO的函数中，
+	除第一个定义之外的其他GPIO。
+	返回一个有效的GPIO描述符，如果没有GPIO被分配给请求的函数和/或索引，
+	则返回-ENOENT；如果在尝试获取GPIO时发生错误，则返回另一个IS_ERR()代码。 
+**/
 struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 					       const char *con_id,
 					       unsigned int idx,
@@ -3981,6 +4042,8 @@ struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 	/*
 	 * Either we are not using DT or ACPI, or their lookup did not return
 	 * a result. In that case, use platform lookup as a fallback.
+	 * 要么我们没有使用设备树（DT）或ACPI，要么它们的查找没有返回结果。
+	 * 在这种情况下，使用平台查找作为后备方案。
 	 */
 	if (!desc || desc == ERR_PTR(-ENOENT)) {
 		dev_dbg(dev, "using lookup tables for GPIO lookup\n");
@@ -3995,6 +4058,7 @@ struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 	/*
 	 * If a connection label was passed use that, else attempt to use
 	 * the device name as label
+	 * 如果传递了连接标签，就使用它；否则尝试使用设备名称作为标签。
 	 */
 	status = gpiod_request(desc, con_id ? con_id : devname);
 	if (status < 0)
@@ -4491,6 +4555,7 @@ static int __init gpiolib_debugfs_init(void)
 				NULL, NULL, &gpiolib_operations);
 	return 0;
 }
-subsys_initcall(gpiolib_debugfs_init);
+
+(gpiolib_debugfs_init);
 
 #endif	/* DEBUG_FS */

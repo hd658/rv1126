@@ -126,6 +126,80 @@ enum input_clock_type {
  *	and needs not be explicitly unregistered or freed.
  * @timestamp: storage for a timestamp set by input_set_timestamp called
  *  by a driver
+ * 
+ * 
+ * 
+* struct input_dev - 代表一个输入设备
+ * @name: 设备名称
+ * @phys: 设备在系统层次结构中的物理路径
+ * @uniq: 设备的唯一标识码（如果有的话）
+ * @id:   设备 ID（struct input_id）
+ * @propbit: 设备属性和怪癖（quirks）的位图
+ * @evbit: 该设备支持的事件类型位图（EV_KEY 、
+ *	EV_REL 等）
+ * @keybit: 该设备拥有的按键/按钮位图
+ * @relbit: 该设备拥有的相对轴位图
+ * @absbit: 该设备拥有的绝对轴位图
+ * @mscbit: 该设备支持的其他杂项事件位图
+ * @ledbit: 该设备上存在的 LED 位图
+ * @sndbit: 该设备支持的音效位图
+ * @ffbit: 该设备支持的力反馈效果位图
+ * @swbit: 该设备上存在的开关位图
+ * @hint_events_per_packet: 设备在一个数据包（位于 EV_SYN/SYN_REPORT
+ *	事件之间）中平均产生的事件数量。事件处理程序用它来估计保存
+ *	事件所需缓冲区的大小。
+ * @keycodemax: 键码表大小
+ * @keycodesize: 键码表中每个元素的大小
+ * @keycode: 该设备的扫描码到键码映射表
+ * @getkeycode: 可选的传统方法，用于获取当前键映射。
+ * @setkeycode: 可选方法，用于修改当前键映射，用于实现稀疏键映射。
+ *	如果未提供，将使用默认机制。该方法在持有 event_lock
+ *	时被调用，因此不可睡眠。
+ * @ff: 如果设备支持力反馈效果，则为此设备关联的力反馈结构体
+ * @repeat_key: 存储最后一个被按下的键的键码；用于实现软件自动重复
+ * @timer: 用于软件自动重复的定时器
+ * @rep: 自动重复参数的当前值（延迟、速率）
+ * @mt: 指向多点触控状态的指针
+ * @absinfo: &struct input_absinfo 元素数组，保存绝对轴的信息
+ *	（当前值、最小值、最大值、平坦值、模糊值、分辨率）
+ * @key: 反映该设备按键/按钮的当前状态
+ * @led: 反映该设备 LED 的当前状态
+ * @snd: 反映音效的当前状态
+ * @sw: 反映该设备开关的当前状态
+ * @open: 当第一个用户调用 input_open_device() 时调用此方法。
+ *	驱动程序必须准备好设备以开始产生事件（启动轮询线程、
+ *	申请 IRQ、提交 URB 等）。
+ * @close: 当最后一个用户调用 input_close_device() 时调用此方法。
+ * @flush: 清除设备。最常用于在断开设备连接时
+ *	清除已加载到设备中的力反馈效果。
+ * @event: 用于处理发送_给_设备的事件的事件处理程序，例如 EV_LED
+ *	或 EV_SND。设备应执行所请求的动作（点亮 LED、播放声音等）。
+ *	该调用受 @event_lock 保护，且不可睡眠。
+ * @grab: 通过 EVIOCGRAB ioctl 抓取了该设备的输入句柄。
+ *	当一个句柄抓取设备后，它就成为来自该设备的所有输入事件的
+ *	唯一接收者。
+ * @event_lock: 当输入核心在 input_event() 中接收并处理该设备的
+ *	新事件时，会获取此自旋锁。在设备已注册到输入核心之后，
+ *	访问和/或修改该设备参数（如 keymap 或 absmin、absmax、
+ *	absfuzz 等）的代码必须持有此锁。
+ * @mutex: 序列化对 open()、close() 和 flush() 方法的调用。
+ * @users: 存储打开此设备的用户（输入处理程序）数量。
+ *	它被 input_open_device() 和 input_close_device() 使用，
+ *	以确保 dev->open() 仅在第一个用户打开设备时被调用，
+ *	而 dev->close() 在最后一个用户关闭设备时被调用。
+ * @going_away: 标记正处于注销过程中的设备，
+ *	并使 input_open_device*() 以 -ENODEV 失败返回。
+ * @dev: 驱动模型中此设备的视图。
+ * @h_list: 与此设备关联的输入句柄链表。
+ *	访问该链表时，必须持有 dev->mutex。
+ * @node: 用于将此设备放入 input_dev_list 链表。
+ * @num_vals: 当前帧中已排队的值的数量。
+ * @max_vals: 一帧中可排队的值的最大数量。
+ * @vals: 当前帧中排队的值的数组。
+ * @devres_managed: 表示设备由 devres 框架管理，
+ *	无需显式注销或释放。
+ * @timestamp: 由驱动程序调用 input_set_timestamp
+ *	设置的时间戳存储位置。
  */
 struct input_dev {
 	const char *name;
@@ -295,6 +369,35 @@ struct input_handle;
  *
  * Note that input core serializes calls to connect() and disconnect()
  * methods.
+* struct input_handler - 实现输入设备的其中一种接口
+ * @private: 驱动特定数据
+ * @event: 事件处理程序。此方法由输入核心在中断被禁用且持有
+ *	dev->event_lock 自旋锁的情况下调用，因此它不能睡眠。
+ * @events: 事件序列处理程序。此方法由输入核心在中断被禁用且持有
+ *	dev->event_lock 自旋锁的情况下调用，因此它不能睡眠。
+ * @filter: 与 @event 类似；将普通事件处理程序与“过滤器”区分开来。
+ * @match: 在将设备的 id 与处理程序的 id_table 进行比较之后被调用，
+ *	用于在设备与处理程序之间执行细粒度匹配。
+ * @connect: 当处理程序附加到输入设备时被调用。
+ * @disconnect: 将处理程序从输入设备断开连接。
+ * @start: 为给定的句柄启动处理程序。此函数由输入核心在 connect()
+ *	方法之后立即调用，并且当“抓取”了设备的进程释放它时也会被调用。
+ * @legacy_minors: 由使用传统次设备号范围的驱动程序设置为 %true。
+ * @minor: 此驱动程序可提供的 32 个传统次设备号的起始编号。
+ * @name: 处理程序的名称，显示在 /proc/bus/input/handlers 中。
+ * @id_table: 指向此驱动程序可处理的 input_device_id 表的指针。
+ * @h_list: 与此处理程序关联的输入句柄链表。
+ * @node: 用于将驱动程序放入 input_handler_list 链表。
+ *
+ * 输入处理程序附加到输入设备并创建输入句柄。在任何给定的输入设备上，
+ * 通常同时附加了多个处理程序。它们全都会获得由该设备生成的输入事件
+ * 的副本。
+ *
+ * 完全相同的结构体用于实现输入过滤器。输入核心允许过滤器首先运行，
+ * 如果任何过滤器指示该事件应被过滤掉（通过其 filter() 方法返回
+ * %true），则不会将事件传递给常规处理程序。
+ *
+ * 注意，输入核心会序列化对 connect() 和 disconnect() 方法的调用。
  */
 struct input_handler {
 
@@ -330,6 +433,15 @@ struct input_handler {
  * @d_node: used to put the handle on device's list of attached handles
  * @h_node: used to put the handle on handler's list of handles from which
  *	it gets events
+
+ * struct input_handle - 将输入设备与输入处理程序链接起来
+ * @private: 处理程序特定的数据
+ * @open: 计数器，指示该句柄是否“打开”，即是否应从其设备传递事件
+ * @name: 由创建该句柄的处理程序为其指定的名称
+ * @dev: 该句柄所附加到的输入设备
+ * @handler: 通过此句柄与该设备配合工作的处理程序
+ * @d_node: 用于将该句柄放入设备的已附加句柄链表
+ * @h_node: 用于将该句柄放入处理程序的句柄链表，处理程序通过此链表获取事件
  */
 struct input_handle {
 

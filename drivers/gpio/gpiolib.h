@@ -47,6 +47,24 @@ struct acpi_device;
  * for a GPIO device and can hold references and live on after the
  * GPIO chip has been removed, if it is still being used from
  * userspace.
+ * 
+ * translate to zh-CN:
+ * struct gpio_device - GPIO设备的内部状态容器
+ * @id: GPIO芯片的数字ID号
+ * @dev: GPIO设备结构体
+ * @chrdev: GPIO设备的字符设备
+ * @mockdev: 由已弃用的sysfs接口使用的类设备（可能为NULL）
+ * @owner: 帮助防止移除导出活动GPIO的模块
+ * @chip: 指向相应gpiochip的指针，持有该设备的静态数据
+ * @descs: ngpio描述符数组。
+ * @ngpio: 该GPIO设备上的GPIO线的数量，等于@descs数组的大小。
+ * @base: 在已弃用的全局Linux GPIO数字空间中的GPIO基数，在设备创建时分配。
+ * @label: GPIO设备的描述性名称，例如系统芯片中IP组件的部件号或名称。
+ * @data: 驱动程序分配的每实例数据
+ * @list: 将gpio_device链接在一起以进行遍历
+ * 这个状态容器保存GPIO设备的大部分运行时变量数据，
+ * 并且如果它仍在被用户空间使用，则可以在GPIO芯片被移除后继续存在。
+ * 
  */
 struct gpio_device {
 	int			id;
@@ -212,7 +230,7 @@ struct gpio_desc {
 #define FLAG_SYSFS	3	/* exported via /sys/class/gpio/control */
 #define FLAG_ACTIVE_LOW	6	/* value has active low */
 #define FLAG_OPEN_DRAIN	7	/* Gpio is open drain type */
-#define FLAG_OPEN_SOURCE 8	/* Gpio is open source type */
+#define FLAG_OPEN_SOURCE 8	/*   Gpio is open source type */
 #define FLAG_USED_AS_IRQ 9	/* GPIO is connected to an IRQ */
 #define FLAG_IS_HOGGED	11	/* GPIO is hogged */
 #define FLAG_TRANSITORY 12	/* GPIO may lose value in sleep or reset */

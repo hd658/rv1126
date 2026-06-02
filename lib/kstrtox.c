@@ -244,6 +244,17 @@ EXPORT_SYMBOL(kstrtouint);
  * Returns 0 on success, -ERANGE on overflow and -EINVAL on parsing error.
  * Used as a replacement for the obsolete simple_strtoull. Return code must
  * be checked.
+ * 
+ * kstrtoint - 将字符串转换为 int 类型整数
+ * @s: 字符串的起始地址。该字符串必须以空字符结尾，且可以在结尾空字符前
+ *   包含一个单独的换行符。第一个字符可以是加号或减号。
+ * @base: 使用的进制基数。支持的最大基数为 16。如果传入 0，则会按照常规语义
+ *   自动检测字符串的进制 —— 如果以 0x 开头，则按十六进制解析（不区分大小写）；
+ *   否则，如果以 0 开头，则按八进制解析；其它情况按十进制解析。
+ * @res: 转换成功时存放结果的指针。
+ *
+ * 成功时返回 0，溢出时返回 -ERANGE，解析错误时返回 -EINVAL。
+ * 用于替代已废弃的 simple_strtoull。必须检查返回码。 * 
  */
 int kstrtoint(const char *s, unsigned int base, int *res)
 {
@@ -328,6 +339,15 @@ EXPORT_SYMBOL(kstrtos8);
  * This routine returns 0 iff the first character is one of 'Yy1Nn0', or
  * [oO][NnFf] for "on" and "off". Otherwise it will return -EINVAL.  Value
  * pointed to by res is updated upon finding a match.
+ * 
+ *  * kstrtobool - 将常见的用户输入转换为布尔值
+ * @s: 输入字符串
+ * @res: 结果
+ *
+ * 当且仅当首字符为 'Y', 'y', '1', 'N', 'n', '0' 之一，
+ * 或字符串为 "on" / "off" 时（首字符为 'o'/'O'，后面接 'n'/'N' 或 'f'/'F'），
+ * 本函数返回 0。否则返回 -EINVAL。
+ * 匹配成功后，res 指向的值会被更新。
  */
 int kstrtobool(const char *s, bool *res)
 {

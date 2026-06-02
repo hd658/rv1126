@@ -288,6 +288,40 @@ enum probe_type {
  * system, however, a number of other things become possible. Device drivers
  * can export information and configuration variables that are independent
  * of any specific device.
+ * 
+ * translate to zh_CN:all
+ * 设备驱动程序 - 基本的设备驱动程序结构
+ * @name: 设备驱动程序的名称。
+ * @bus: 该设备所属的总线。
+ * @owner: 模块所有者。
+ * @mod_name: 用于内置模块。
+ * @suppress_bind_attrs: 禁止通过 sysfs 进行绑定/解绑。
+ * @probe_type: 要使用的探测（同步或异步）类型。
+ * @of_match_table: 开放固件表。
+ * @acpi_match_table: ACPI 匹配表。
+ * @probe: 用于查询特定设备的存在，是否该驱动程序可以与之配合，
+ * 并将驱动程序绑定到特定设备。
+ * @sync_state: 在所有链接到此设备的状态跟踪消费者
+ * （在 late_initcall 时存在）成功绑定到驱动程序后调用，
+ * 以将设备状态同步到软件状态。如果设备没有消费者，则此函数将在
+ * late_initcall_sync 级别被调用。
+ * 如果设备有永远不会绑定到驱动程序的消费者，
+ * 则此函数将永远不会被调用，直到它们绑定。
+ * @remove: 当设备从系统中移除时调用，以将设备与此驱动程序解绑。
+ * @shutdown: 在关机时调用以使设备安静。
+ * @suspend: 用于将设备置于睡眠模式。通常是低功耗状态。
+ * @resume: 用于将设备从睡眠模式中唤醒。
+ * @groups: 驱动程序核心自动创建的默认属性。
+ * @pm: 与此驱动程序匹配的设备的电源管理操作。
+ * @coredump: 当 sysfs 条目被写入时调用。设备驱动程序预计会调用 
+ * dev_coredump API，导致 uevent。
+ * @p: 驱动程序核心的私有数据，除了驱动程序核心之外没有人可以触摸。
+ * 设备驱动程序模型跟踪系统中所有已知的驱动程序。
+ * 跟踪的主要原因是使驱动程序核心能够将新设备与驱动程序匹配起来。
+ * 然而，一旦驱动程序成为系统中的已知对象，就可以实现许多其他功能。
+ * 设备驱动程序可以导出独立于任何特定设备的信息和配置变量。
+ * 
+ * 
  */
 struct device_driver {
 	const char		*name;
@@ -564,6 +598,13 @@ extern void class_destroy(struct class *cls);
  * information, equivalent to the kobj_type of a kobject.
  * If "name" is specified, the uevent will contain it in
  * the DEVTYPE variable.
+ * 
+ * 该结构体描述的是内嵌在 "struct device" 中的设备类型。一个类
+ * 或总线可以包含不同类型的设备，例如 "partitions" 和 "disks"、
+ * "mouse" 和 "event"。它标识了设备类型并携带特定于类型的信息，
+ * 等同于 kobject 的 kobj_type。
+ * 如果指定了 "name"，uevent 中会将其包含在 DEVTYPE 变量中。
+ * 
  */
 struct device_type {
 	const char *name;
@@ -995,6 +1036,70 @@ struct dev_links_info {
  * result, it is rare for devices to be represented by bare device structures;
  * instead, that structure, like kobject structures, is usually embedded within
  * a higher-level representation of the device.
+ * 
+ * struct device - 基本设备结构
+@parent: 设备的"父"设备，即该设备所连接到的设备。
+​ 在大多数情况下，父设备是某种总线或主机控制器。如果parent为NULL，
+则该设备是顶级设备，这通常不是您想要的。
+@p: 保存设备驱动核心部分的私有数据。有关详细信息，
+请参见struct device_private的注释。
+
+@kobj: 一个顶级抽象类，其他类都由此派生。
+@init_name: 设备的初始名称。
+@type: 设备类型。
+​ 这标识了设备类型并携带特定类型的信息。
+@mutex: 用于同步调用其驱动的互斥锁。
+@bus: 设备所在的总线类型。
+@driver: 哪个驱动程序分配了此设备。
+@platform_data: 设备特定的平台数据。
+​ 示例：对于自定义板卡上的设备（这在基于嵌入式系统芯片的硬件中很典型），
+Linux通常使用platform_data指向描述设备及其连接方式的板级特定结构。
+这可以包括哪些端口可用、芯片变体、哪些GPIO引脚扮演什么附加角色等。
+这缩小了"板级支持包"（BSP）的规模，并最小化了驱动程序中的板级特定#ifdef指令。
+@driver_data: 用于驱动程序特定信息的私有指针。
+@links: 指向此设备供应者和消费者的链接。
+@power: 用于设备电源管理。
+​ 有关详细信息，请参见Documentation/driver-api/pm/devices.rst。
+@pm_domain: 提供在执行系统暂停、休眠、系统恢复以及运行时电源管理转换期间执行的回调
+，同时还包括子系统级别和驱动程序级别的回调。
+@pins: 用于设备引脚管理。
+​ 有关详细信息，请参见Documentation/driver-api/pinctl.rst。
+@msi_list: 托管MSI描述符。
+@msi_domain: 此设备正在使用的通用MSI域。
+@numa_node: 此设备接近的NUMA节点。
+@dma_ops: 此设备的DMA映射操作。
+@dma_mask: DMA掩码（如果设备支持DMA）。
+@coherent_dma_mask: 类似于dma_mask，但用于alloc_coherent映射，
+因为并非所有硬件都支持用于一致分配（例如描述符）的64位地址。
+@bus_dma_mask: 上游桥接器或总线的掩码，它施加了比设备本身支持更小的DMA限制。
+@dma_pfn_offset: DMA内存范围相对于RAM的偏移。
+@dma_parms: 低级别驱动程序可以设置这些参数，以向IOMMU代码传授分段限制信息。
+@dma_pools: DMA池（如果设备支持DMA）。
+@dma_mem: 用于一致内存覆盖的内部成员。
+@cma_area: 用于DMA分配的连续内存区域。
+@archdata: 用于架构特定的附加信息。
+@of_node: 关联的设备树节点。
+@fwnode: 由平台固件提供的关联设备节点。
+@devt: 用于创建sysfs"dev"。
+@id: 设备实例。
+@devres_lock: 保护设备资源的自旋锁。
+@devres_head: 设备的资源列表。
+@knode_class: 用于将设备添加到类列表的节点。
+@class: 设备的类。
+@groups: 可选的属性组。
+@release: 在所有引用都消失后释放设备的回调。这应由设备的分配器
+（即发现该设备的总线驱动程序）设置。
+@iommu_group: 设备所属的IOMMU组。
+@iommu_fwspec: 由固件提供的IOMMU特定属性。
+@offline_disabled: 如果设置，该设备将永久在线。
+@offline: 在成功调用总线类型的.offline()后设置。
+@of_node_reused: 如果设备树节点与祖先设备共享，则设置此标志。
+@state_synced: 通过调用驱动程序/总线的sync_state()回调，
+此设备的硬件状态已同步以匹配其软件状态。
+在最底层，Linux系统中的每个设备都由一个struct device实例表示。
+设备结构包含了设备模型核心对系统建模所需的信息。然而，
+大多数子系统会跟踪它们所托管设备的额外信息。因此，设备很少由裸设备结构表示；
+相反，与kobject结构一样，该结构通常嵌入在设备的高级表示中。
  */
 struct device {
 	struct device		*parent;
@@ -1614,7 +1719,7 @@ do {									\
 #ifdef VERBOSE_DEBUG
 #define dev_vdbg	dev_dbg
 #else
-#define dev_vdbg(dev, fmt, ...)						\
+#define dev_vdbg(dev, fmt, ...)						
 ({									\
 	if (0)								\
 		dev_printk(KERN_DEBUG, dev, dev_fmt(fmt), ##__VA_ARGS__); \

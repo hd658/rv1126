@@ -562,6 +562,19 @@ int vsnprintf(char *string, acpi_size size, const char *format, va_list args)
  * DESCRIPTION: Formatted output to a string.
  *
  ******************************************************************************/
+/*******************************************************************************
+ *
+ * 函数名称:    snprintf
+ *
+ * 参数:        string              - 带边界的字符串缓冲区
+ *              size                - 字符串缓冲区的边界大小
+ *              Format, ...         - 标准 printf 格式
+ *
+ * 返回值:      实际写入的字节数。
+ *
+ * 描述:        将格式化输出写入字符串。
+ *
+ ******************************************************************************/
 
 int snprintf(char *string, acpi_size size, const char *format, ...)
 {
@@ -585,6 +598,18 @@ int snprintf(char *string, acpi_size size, const char *format, ...)
  * RETURN:      Number of bytes actually written.
  *
  * DESCRIPTION: Formatted output to a string.
+ *
+ ******************************************************************************/
+/*******************************************************************************
+ *
+ * 函数名称:    sprintf
+ *
+ * 参数:        string              - 带边界的字符串缓冲区
+ *              Format, ...         - 标准 printf 格式
+ *
+ * 返回值:      实际写入的字节数。
+ *
+ * 描述:        将格式化输出写入字符串。
  *
  ******************************************************************************/
 

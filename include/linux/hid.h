@@ -474,6 +474,35 @@ struct hid_field {
 
 #define HID_MAX_FIELDS 256
 
+/*
+
+list	链表节点，用来把这个 hid_report 
+挂到 hid_device 的报告链表上（如 report_enum[HID_INPUT_REPORT].report_list）。
+
+hidinput_list	另一个链表节点，当这个报告被关联到输入子系统（创建 input_dev）后，
+会挂到 hidinput 相关链表，方便日后清理。
+
+id	报告 ID。如果设备没有定义报告 ID，这里就是 0；否则，这个 ID 就是原始 HID 
+报告中用来区分不同报告的第一个字节。
+
+type	报告类型，即 HID_INPUT_REPORT、HID_OUTPUT_REPORT 或 HID_FEATURE_REPORT 
+中的一个，对应我们之前讨论的枚举值。
+
+application	该报告所属的 Application Collection 的 Usage。比如对键盘主功能而言，
+这就是 HID_GD_KEYBOARD（0x00010006），
+让内核知道这份报告是给“键盘”这个“虚拟子设备”用的。
+
+field[HID_MAX_FIELDS]	一个指针数组，指向组成该报告的所有 字段
+（struct hid_field）。每个字段描述报告中的一组同类型数据。
+
+maxfield	实际有效的字段数量，即 field[] 中已填充的元素个数。
+
+size	报告的总大小（单位是 bit）。比如标准键盘的输入报告是 8 字节，那 size 就是 64。
+device	指向所属的 hid_device 结构体，表明这个报告属于哪个设备。
+
+*/
+
+
 struct hid_report {
 	struct list_head list;
 	struct list_head hidinput_list;
@@ -538,8 +567,12 @@ enum hid_type {
 
 enum hid_battery_status {
 	HID_BATTERY_UNKNOWN = 0,
-	HID_BATTERY_QUERIED,		/* Kernel explicitly queried battery strength */
-	HID_BATTERY_REPORTED,		/* Device sent unsolicited battery strength report */
+	HID_BATTERY_QUERIED,		
+	/* Kernel explicitly queried battery strength */
+
+	HID_BATTERY_REPORTED,		
+	/* Device sent unsolicited battery strength report */
+
 };
 
 struct hid_driver;
@@ -550,21 +583,35 @@ struct hid_device {							/* device report descriptor */
 	unsigned dev_rsize;
 	__u8 *rdesc;
 	unsigned rsize;
-	struct hid_collection *collection;				/* List of HID collections */
-	unsigned collection_size;					/* Number of allocated hid_collections */
-	unsigned maxcollection;						/* Number of parsed collections */
-	unsigned maxapplication;					/* Number of applications */
-	__u16 bus;							/* BUS ID */
+	struct hid_collection *collection;				
+	/* List of HID collections */
+
+	unsigned collection_size;					
+	/* Number of allocated hid_collections */
+
+	unsigned maxcollection;						
+	/* Number of parsed collections */
+
+	unsigned maxapplication;					
+	/* Number of applications */
+
+	__u16 bus;							
+	/* BUS ID */
+
 	__u16 group;							/* Report group */
 	__u32 vendor;							/* Vendor ID */
 	__u32 product;							/* Product ID */
 	__u32 version;							/* HID version */
-	enum hid_type type;						/* device type (mouse, kbd, ...) */
+	enum hid_type type;						
+	/* device type (mouse, kbd, ...) */
+
 	unsigned country;						/* HID country */
 	struct hid_report_enum report_enum[HID_REPORT_TYPES];
 	struct work_struct led_work;					/* delayed LED worker */
 
-	struct semaphore driver_input_lock;				/* protects the current driver */
+	struct semaphore driver_input_lock;				
+	/* protects the current driver */
+
 	struct device dev;						/* device */
 	struct hid_driver *driver;
 
@@ -590,7 +637,9 @@ struct hid_device {							/* device report descriptor */
 
 	unsigned long status;						/* see STAT flags above */
 	unsigned claimed;						/* Claimed by hidinput, hiddev? */
-	unsigned quirks;						/* Various quirks the device can pull on us */
+	unsigned quirks;						
+	/* Various quirks the device can pull on us */
+
 	bool io_started;						/* If IO has started */
 
 	struct list_head inputs;					/* The list of inputs */
@@ -598,8 +647,12 @@ struct hid_device {							/* device report descriptor */
 	void *hidraw;
 
 	char name[128];							/* Device name */
-	char phys[64];							/* Device physical location */
-	char uniq[64];							/* Device unique identifier (serial #) */
+
+	char phys[64];							
+	/* Device physical location */
+
+	char uniq[64];							
+	/* Device unique identifier (serial #) */
 
 	void *driver_data;
 
@@ -735,6 +788,42 @@ struct hid_usage_id {
  * no processing was performed and should be done in a generic manner
  * Both these functions may be NULL which means the same behavior as returning
  * zero from them.
+ * 
+ * * struct hid_driver - HID 设备驱动程序
+ * @name: 驱动名称（例如 "Footech_bar-wheel")
+ * @id_table: 该驱动所支持的设备列表（必须非空，probe 才会被调用）
+ * @dyn_list: 动态添加的设备 ID 链表
+ * @dyn_lock: 保护 @dyn_list 的锁
+ * @match: 检查给定的设备是否由本驱动处理
+ * @probe: 新设备插入时调用
+ * @remove: 设备移除时调用（若非热插拔驱动则可为 NULL）
+ * @report_table: 指定要对哪些报告调用 raw_event（NULL 表示全部）
+ * @raw_event: 如果报告在 report_table 中，则调用此钩子（NULL 表示无操作）
+ * @usage_table: 指定要对哪些 usage 调用 event（NULL 表示全部）
+ * @event: 如果 usage 在 usage_table 中，则调用此钩子（NULL 表示无操作）
+ * @report: 解析完一个报告后调用此钩子（NULL 表示无操作）
+ * @report_fixup: 在解析报告描述符之前调用（NULL 表示无操作）
+ * @input_mapping: 在注册输入设备、映射一个 usage 之前调用
+ * @input_mapped: 在注册输入设备、映射一个 usage 之后调用
+ * @input_configured: 在设备即将注册之前调用
+ * @feature_mapping: 在注册 feature 时调用
+ * @suspend: 挂起时调用（NULL 表示无操作）
+ * @resume: 恢复时调用，如果设备未被复位（NULL 表示无操作）
+ * @reset_resume: 恢复时调用，如果设备被复位过（NULL 表示无操作）
+ *
+ * probe 应在出错时返回 -errno，成功时返回 0。在 probe 过程中，
+ * 除非调用了 hid_device_io_start，否则 input 不会传递给 raw_event。
+ *
+ * raw_event 和 event 应返回 0 表示未执行任何操作，返回 1 表示不需要
+ * 进一步处理，返回负值表示出错。
+ *
+ * input_mapping 应返回负值表示完全忽略此 usage
+ * （例如重复或无效的 usage），返回零表示由通用代码继续解析此 usage
+ * （无需特殊处理），返回正值表示跳过通用解析
+ * （已在钩子中完成了所需的特殊处理）。
+ * input_mapped 应返回负值通知上层此 usage 不应再被进一步处理，
+ * 返回零通知上层未执行任何处理并且应由通用方式处理。
+ * 这两个函数都可以为 NULL，行为等同于返回零。
  */
 struct hid_driver {
 	char *name;
@@ -1008,6 +1097,16 @@ static inline void hid_map_usage_clear(struct hid_input *hidinput,
  * Call this from probe after you set up the device (if needed). Your
  * report_fixup will be called (if non-NULL) after reading raw report from
  * device before passing it to hid layer for real parsing.
+ *  * 
+ * hid_parse - 解析硬件报告
+ *
+ * @hdev: HID 设备
+ *
+ * 在 probe 中设置好设备后（如有需要）调用此函数。
+ * 您的 report_fixup 回调（如果非空）将在从设备读取原始报告之后、
+ * 将其传递给 HID 层进行实际解析之前被调用。
+ */
+ * 
  */
 static inline int __must_check hid_parse(struct hid_device *hdev)
 {

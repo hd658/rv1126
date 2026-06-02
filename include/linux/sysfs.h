@@ -80,6 +80,25 @@ do {							\
  * @attrs:	Pointer to NULL terminated list of attributes.
  * @bin_attrs:	Pointer to NULL terminated list of binary attributes.
  *		Either attrs or bin_attrs or both must be provided.
+
+* struct attribute_group - 用于声明一个属性组的数据结构。
+ * @name:       可选：属性组名称
+ *              如果指定，该属性组将在此名称的新建子目录中创建。
+ * @is_visible: 可选：用于返回与组内某个属性关联的权限的函数。
+ *              将对组内每个非二进制属性重复调用。
+ *              只接受读/写权限以及 SYSFS_PREALLOC 标志。
+ *              如果某个属性不可见，则必须返回 0。
+ *              返回的值将替换 struct attribute 中定义的静态权限。
+ * @is_bin_visible:
+ *              可选：用于返回与组内某个二进制属性关联的权限的函数。
+ *              将对组内每个二进制属性重复调用。
+ *              只接受读/写权限以及 SYSFS_PREALLOC 标志。
+ *              如果某个二进制属性不可见，则必须返回 0。
+ *              返回的值将替换 struct bin_attribute 中定义的静态权限。
+ * @attrs:      指向以 NULL 结尾的属性列表的指针。
+ * @bin_attrs:  指向以 NULL 结尾的二进制属性列表的指针。
+ *              必须提供 attrs、bin_attrs 或两者都提供。
+
  */
 struct attribute_group {
 	const char		*name;
@@ -546,5 +565,7 @@ static inline void sysfs_put(struct kernfs_node *kn)
 {
 	kernfs_put(kn);
 }
+
+
 
 #endif /* _SYSFS_H_ */

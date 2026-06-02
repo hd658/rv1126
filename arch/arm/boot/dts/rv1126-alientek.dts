@@ -5,6 +5,8 @@
 /dts-v1/;
 #include "rv1126.dtsi"
 #include "rv1126-alientek.dtsi"
+
+
 / {
     model = "ALIENTEK RV1126 EVB DDR4 V1.0 Board";
     compatible = "rockchip,rv1126-evb-ddr3-v13", "rockchip,rv1126";
@@ -227,7 +229,7 @@
         dvdd-supply = <&vcc_dvdd>;
         pwdn-gpios = <&gpio1 RK_PD4 GPIO_ACTIVE_HIGH>;
         reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_LOW>;
-        rockchip,camera-module-index = <0>;
+        rockchip,camera-module-index = <0>;  
         rockchip,camera-module-facing = "front";
         rockchip,camera-module-name = "MTV4-IR-E-P";
         rockchip,camera-module-lens-name = "40IRC-4MP-F16";

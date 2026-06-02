@@ -23,6 +23,12 @@
  * The event structure itself
  * Note that __USE_TIME_BITS64 is defined by libc based on
  * application's request to use 64 bit time_t.
+ * 
+ * * 事件结构体本身
+ * 请注意，__USE_TIME_BITS64 是由 libc 根据应用程序
+ * 请求使用 64 位 time_t 而定义的。
+ * 
+ * 
  */
 
 struct input_event {

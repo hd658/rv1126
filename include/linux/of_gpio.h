@@ -22,6 +22,10 @@ struct device_node;
  * This is Linux-specific flags. By default controllers' and Linux' mapping
  * match, but GPIO controllers are free to translate their own flags to
  * Linux-specific in their .xlate callback. Though, 1:1 mapping is recommended.
+ 	这是 Linux 特有的标志。默认情况下，控制器和 Linux 的映射是匹配的，
+ 	但 GPIO 控制器可以在它们的 .xlate 回调中自由地将它们自己的标志转换为 Linux 
+ 	特有的标志。
+ 	不过，推荐使用 1:1 映射。
  */
 enum of_gpio_flags {
 	OF_GPIO_ACTIVE_LOW = 0x1,

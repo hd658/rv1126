@@ -186,6 +186,17 @@ EXPORT_SYMBOL_GPL(sysfs_create_group);
  * created already exist.
  *
  * Returns 0 on success or error code from sysfs_create_group on failure.
+ * 
+ * sysfs_create_groups - 
+ * 在给定的目录 kobject 上创建一组属性组
+ * @kobj:	要在其上创建属性组的 kobject
+ * @groups:	要创建的属性组数组，以 NULL 结尾
+ *
+ * 此函数创建一组属性组。如果在创建某个组时发生错误，
+ * 所有已创建的组都会被移除，回滚到调用本函数时的原始状态。
+ * 如果要创建的任何属性文件已经存在，本函数会显式地警告并报错。
+ *
+ * 成功返回 0，失败则返回 sysfs_create_group 的错误码。 * 
  */
 int sysfs_create_groups(struct kobject *kobj,
 			const struct attribute_group **groups)

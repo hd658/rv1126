@@ -9,6 +9,9 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
+ *
+ *  translate to zh-CN:
+ * OF GPIO API的帮助程序
  */
 
 #include <linux/device.h>
@@ -104,6 +107,14 @@ static void of_gpio_flags_quirks(struct device_node *np,
  * Returns GPIO descriptor to use with Linux GPIO API, or one of the errno
  * value on the error condition. If @flags is not NULL the function also fills
  * in flags for the GPIO.
+ * 
+ * of_get_named_gpiod_flags() - 获取用于 GPIO API 的 GPIO 描述符和标志
+	@np: 要从中获取 GPIO 的设备节点
+	@propname: 包含 GPIO 说明符的属性名
+	@index: GPIO 的索引
+	@flags: 用于填充标志的标志指针
+	返回用于 Linux GPIO API 的 GPIO 描述符，或者在错误条件下返回一个 errno 值。
+	如果 @flags 不为 NULL，该函数还会填充 GPIO 的标志。
  */
 struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
 		     const char *propname, int index, enum of_gpio_flags *flags)
@@ -249,6 +260,10 @@ struct gpio_desc *of_find_gpio(struct device *dev, const char *con_id,
 		 * alternate name conventions, and we should really
 		 * preserve the return code for our user to be able to
 		 * retry probing later.
+		 * -EPROBE_DEFER 在我们的情况下意味着我们找到了一个有效的 GPIO 属性，
+		 * 但尚未注册任何控制器。
+			这意味着我们不需要继续寻找替代的命名约定，并且我们真的应该保留返回代码，
+			以便我们的用户能够在以后重试探测。
 		 */
 		if (IS_ERR(desc) && PTR_ERR(desc) == -EPROBE_DEFER)
 			return desc;

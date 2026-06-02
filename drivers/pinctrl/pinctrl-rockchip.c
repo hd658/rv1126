@@ -135,6 +135,11 @@ enum rockchip_pinctrl_type {
  * @offset: if initialized to -1 it will be autocalculated, by specifying
  *	    an initial offset value the relevant source offset can be reset
  *	    to a new value for autocalculating the following iomux registers.
+ * translate to zh-CN:
+ * 编码iomux寄存器的变体到一个类型变量
+ * @type: 使用IOMUX_*常量的iomux变体
+ * @offset: 如果初始化为-1，它将被自动计算，通过指定一个初始偏移值，
+ * 相关的源偏移可以被重置为一个新值，以自动计算以下iomux寄存器。
  */
 struct rockchip_iomux {
 	int				type;
@@ -143,6 +148,31 @@ struct rockchip_iomux {
 
 /**
  * enum type index corresponding to rockchip_perpin_drv_list arrays index.
+ * DRV_TYPE_IO_DEFAULT: means same regmap as pin iomux
+ * DRV_TYPE_IO_1V8_OR_3V0: means drive strength setting is shared for 1.8V and 3.0V IOs, but different regmap with pin iomux
+ * DRV_TYPE_IO_1V8_ONLY: means drive strength setting is only for 1.8V IOs, but different regmap with pin iomux
+ * DRV_TYPE_IO_1V8_3V0_AUTO: means drive strength setting is shared for 1.8V and 3.0V IOs, but the regmap is auto calculated by chip own cal_drv function, which means the regmap maybe same or different with pin iomux
+ * DRV_TYPE_IO_3V3_ONLY: means drive strength setting is only for 3.3V IOs, but different regmap with pin iomux
+ * DRV_TYPE_MAX: means the max type number of drive strength variant, should be the last one of the enum
+ * the type of drive strength setting should be decided by the chip itself, and the regmap of drive strength setting should be decided by the type and chip own cal_drv function if needed. if the chip does not have drive strength setting, the variant could be ignored.
+ * 
+ * translate to zh-CN:
+ * 与rockchip_perpin_drv_list数组索引对应的枚举类型。
+ * DRV_TYPE_IO_DEFAULT: 意味着与pin iomux相同的regmap
+ * DRV_TYPE_IO_1V8_OR_3V0: 意味着1.8V和3.0V IO的驱动强度设置是共享的，
+ * 但与pin iomux的regmap不同
+ * DRV_TYPE_IO_1V8_ONLY: 意味着驱动强度设置仅适用于1.8V IO，
+ * 但与pin iomux的regmap不同
+ * DRV_TYPE_IO_1V8_3V0_AUTO: 意味着1.8V和3.0V IO的驱动强度设置是共享的，
+ * 但regmap由芯片自己的cal_drv函数自动计算，
+ * 这意味着regmap可能与pin iomux相同或不同
+ * DRV_TYPE_IO_3V3_ONLY: 意味着驱动强度设置仅适用于3.3V IO，
+ * 但与pin iomux的regmap不同
+ * DRV_TYPE_MAX: 意味着驱动强度变体的最大类型数量，应该是枚举的最后一个
+ * 驱动强度设置的类型应该由芯片本身决定，驱动强度设置的regmap应该由类型和芯片自己的
+ * cal_drv函数决定（如果需要）。
+ * 如果芯片没有驱动强度设置，则可以忽略变体。
+ * 
  */
 enum rockchip_pin_drv_type {
 	DRV_TYPE_IO_DEFAULT = 0,
@@ -184,6 +214,8 @@ enum rockchip_pin_route_type {
  *	    to a new value for autocalculating the following drive strength
  *	    registers. if used chips own cal_drv func instead to calculate
  *	    registers offset, the variant could be ignored.
+ * translate to zh-CN:
+ * 
  */
 struct rockchip_drv {
 	enum rockchip_pin_drv_type	drv_type;
@@ -3907,7 +3939,7 @@ static int rockchip_pinctrl_register(struct platform_device *pdev,
 	if (ret)
 		return ret;
 
-	info->pctl_dev = devm_pinctrl_register(&pdev->dev, ctrldesc, info);
+	info->pctl_dev =  (&pdev->dev, ctrldesc, info);
 	if (IS_ERR(info->pctl_dev)) {
 		dev_err(&pdev->dev, "could not register pinctrl driver\n");
 		return PTR_ERR(info->pctl_dev);

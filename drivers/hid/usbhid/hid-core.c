@@ -269,6 +269,7 @@ static int usbhid_restart_ctrl_queue(struct usbhid_device *usbhid)
 
 /*
  * Input interrupt completion handler.
+ 	输入中断完成处理函数。
  */
 
 static void hid_irq_in(struct urb *urb)

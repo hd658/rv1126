@@ -64,6 +64,8 @@ struct usb_interface *usbhid_find_interface(int minor);
 /*
  * USB-specific HID struct, to be pointed to
  * from struct hid_device->driver_data
+ * USB 特定的 HID 结构体，由
+ * struct hid_device->driver_data 指向
  */
 
 struct usbhid_device {

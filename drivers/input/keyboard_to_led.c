@@ -65,8 +65,9 @@ static int my_sysfs_emit(char *buf, const char *fmt, ...)
 }
 
 
-static int get_led_num(struct led_classdev *led_cdev;)
+static int get_led_num(struct kbd_to_led *ktl)
 {
+    struct led_classdev *led_cdev = ktl->led_cdev;
     int count = 0;
     down_read(&leds_list_lock);
     list_for_each_entry(led_cdev,&leds_list,node)
@@ -79,15 +80,15 @@ static int get_led_num(struct led_classdev *led_cdev;)
 
 static int select_led(struct kbd_to_led *ktl,int which_one)
 {
-    struct led_classdev *led_cdev_init;
+    struct led_classdev *led_cdev;
     int led_num = 0;
     int index = 0;
-    if(!(led_num = get_led_num(led_cdev_init)))
+    if(!(led_num = get_led_num(ktl)))
         return -ENODEV;
 
     which_one = which_one % (led_num+1);
     down_read(&leds_list_lock);
-    list_for_each_entry(led_cdev_init,&leds_list,node)
+    list_for_each_entry(led_cdev,&leds_list,node)
     {
         index++;
         if(index == which_one)
@@ -97,7 +98,7 @@ static int select_led(struct kbd_to_led *ktl,int which_one)
     }
     up_read(&leds_list_lock);
 
-    ktl->led_cdev = led_cdev_init;
+    ktl->led_cdev = led_cdev;
     ktl->which_led = index;
     return 0;
 }
@@ -134,7 +135,7 @@ static ssize_t ktl_get_led(struct device *dev,
                             struct device_attribute *attr, 
                             const char *buf)
 {
-    struct kbd_to_led *ktl = container_of(dev,struct kdb_to_led,dev);
+    struct kbd_to_led *ktl = container_of(dev,struct kbd_to_led,dev);
     // struct led_classdev *led_cdev;
     // int count = 0;
     // int err;
@@ -151,8 +152,7 @@ static ssize_t ktl_get_led(struct device *dev,
     // // }
     // count++;
     // up_read(&leds_list_lock);
-    scnprintf(buf,PAGE_SIZE,"The LED selected for this device is: %d,
-                             The number of LEDs recognized by the system is:%d\n",ktl->which_led,get_led_num());
+    scnprintf(buf,PAGE_SIZE,"The LED selected for this device is: %d,The number of LEDs recognized by the system is:%d\n",ktl->which_led,get_led_num());
 
     return strlen(buf);
 }
@@ -161,8 +161,8 @@ static ssize_t ktl_get_help(struct device *dev,
                             struct device_attribute *attr, 
                             const char *buf)
 {
-    return my_sysfs_emit(buf, "%s\n", "Please read the led_select file to get the number of LED devices in the system, 
-                                        with spaces as the delimiter. 
+    return my_sysfs_emit(buf, "%s\n", "Please read the led_select file to get the number of LED devices in the system,\
+                                        with spaces as the delimiter. \
                                         To select an LED, use 1, 2, or 3; only one value can be written at a time.");
 }
 
@@ -201,20 +201,28 @@ static ssize_t state_store(struct device *dev,
         return ret;
     }
 
-    ktl->open = (int)result;
-
     if(ktl->open)
     {
-        ret = ktl_open_device(ktl);
-        if(ret < 0)
+        if(result == 0)
         {
             ktl->open = 0;
-            return (ssize_t)ret;
+            ktl_close_device(ktl);
+
         }
     }
     else
     {
-        ktl_close_device(ktl);
+        if(result !=0)
+        {
+            ktl->open = 1;
+            int ret = ktl_open_device(ktl);
+            if(ret < 0)
+            {
+                pr_debug("Failed to open ktl\n");
+                ktl->open = 0;
+                return ret;
+            }
+        }
     }
 
     return (ssize_t)count;
@@ -347,15 +355,32 @@ static void kbd_to_led_disconnect(struct input_handle *handle)
 }
 
 
+
 //TODO: 传给handler 的event 回调函数，然后在这里面需要实现打开led
 //这里面注意需要知道我们ktl是有open的，我们需要在event里面使用这个
 static void kbd_to_led_event(struct input_handle *handle, 
                                     unsigned int type,
                                     unsigned int code, int value)
 {
+    struct kbd_to_led *ktl = handle->private;
+    struct led_classdev *led = ktl->led_cdev;
+    int brightness = 0;
     
-
-
+    if(type == EV_KEY) //过滤掉EV_SYN,确实可以用filter函数来过滤一些事件
+    {
+        if(led->brightness_set != NULL) //高优先级
+        {
+           led_set_brightness_nosleep(led,(brightness == LED_OFF) ? LED_ON : LED_OFF);
+        }
+        else if(led->brightness_set_blocking != NULL)
+        {
+            int ret = led_set_brightness_sync(led,(brightness == LED_OFF) ? LED_ON : LED_OFF);
+            if(ret < 0)
+            {
+                pr_debug("Failed to set brightness\n");
+            }
+        }
+    }
 
 }
 

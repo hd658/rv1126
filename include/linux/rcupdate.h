@@ -619,6 +619,43 @@ static inline void rcu_preempt_sleep_check(void) { }
  * implementations in real-time (with -rt patchset) kernel builds, RCU
  * read-side critical sections may be preempted and they may also block, but
  * only when acquiring spinlocks that are subject to priority inheritance.
+ * 
+ * rcu_read_lock() —— 标记一个 RCU 读侧临界区的开始。
+ *
+ * 当在一个 CPU 上调用 synchronize_rcu() 时，如果其他 CPU
+ * 正处于 RCU 读侧临界区中，那么 synchronize_rcu() 保证会阻塞，
+ * 直到所有其他 CPU 退出其临界区。类似地，如果在某个 CPU 上
+ * 调用 call_rcu() 时，其他 CPU 正处于 RCU 读侧临界区，
+ * 则对应的 RCU 回调的执行将被推迟，直到所有其他 CPU 退出
+ * 其临界区。
+ *
+ * 不过要注意，RCU 回调允许与新的 RCU 读侧临界区并发执行。
+ * 例如，以下事件序列就可能发生这种情况：
+ * (1) CPU 0 进入一个 RCU 读侧临界区，
+ * (2) CPU 1 调用 call_rcu() 注册一个 RCU 回调，
+ * (3) CPU 0 退出 RCU 读侧临界区，
+ * (4) CPU 2 进入一个 RCU 读侧临界区，
+ * (5) 该 RCU 回调被调用。
+ * 这是合法的，因为与 call_rcu() 同时运行的那个 RCU 读侧临界区
+ * （因而它可能正在引用将被 RCU 回调释放的东西）
+ * 在对应的 RCU 回调被调用之前已经完成。
+ *
+ * RCU 读侧临界区可以嵌套。任何延迟动作都将被推迟到
+ * 最外层的 RCU 读侧临界区完成之后。
+ *
+ * 你可以通过遵循以下规则来免于阅读和理解下一段落：
+ * 不要在任何一个 rcu_read_lock() 保护的 RCU 读侧临界区中
+ * 放入会在 !PREEMPT 内核中阻塞的任何操作。
+ * 但如果你想了解全貌，请继续往下读！
+ *
+ * 在不可抢占的 RCU 实现（TREE_RCU 和 TINY_RCU）中，
+ * 在 RCU 读侧临界区内阻塞是非法的。
+ * 在开启了 CONFIG_PREEMPT 的内核中的可抢占 RCU 实现
+ * （PREEMPT_RCU）里，RCU 读侧临界区可以被抢占，
+ * 但显式的阻塞仍然是非法的。
+ * 最后，在实时（带 -rt 补丁集）内核构建中的可抢占 RCU 实现里，
+ * RCU 读侧临界区既可以被抢占，也可以阻塞，但仅限于获取
+ * 那些受优先级继承影响的自旋锁时。 * 
  */
 static __always_inline void rcu_read_lock(void)
 {

@@ -31,4 +31,4 @@ obj-$(CONFIG_INPUT_MISC)	+= misc/
 obj-$(CONFIG_INPUT_APMPOWER)	+= apm-power.o
 
 obj-$(CONFIG_RMI4_CORE)		+= rmi4/
-obj-y                       += keyboard_to_led.o
+obj-$(CONFIG_KEYBOARD_TO_LED)                       += keyboard_to_led.o

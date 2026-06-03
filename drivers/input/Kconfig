@@ -183,6 +183,12 @@ config INPUT_APMPOWER
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called apm-power.
+	  
+config KEYBOARD_TO_LED
+	tristate "keyboard_to_led"
+	depends on INPUT && NEW_LEDS
+	help 
+		这只是一个小小的实验玩具程序。
 
 comment "Input Device Drivers"
 
